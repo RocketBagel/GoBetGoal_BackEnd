@@ -273,9 +273,14 @@
     <Compile Include="Migrations\202508161322541_AdjustUserStageModelStatus.Designer.cs">
       <DependentUpon>202508161322541_AdjustUserStageModelStatus.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202508171039176_AddChallengeTypeInStageModel.cs" />
+    <Compile Include="Migrations\202508171039176_AddChallengeTypeInStageModel.Designer.cs">
+      <DependentUpon>202508171039176_AddChallengeTypeInStageModel.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\Avatar.cs" />
     <Compile Include="Models\Context.cs" />
+    <Compile Include="Models\DTOs\AiApiDto.cs" />
     <Compile Include="Models\DTOs\AvatarDto.cs" />
     <Compile Include="Models\DTOs\ErrorResponseDto.cs" />
     <Compile Include="Models\DTOs\LoginRequestDto.cs" />
@@ -298,6 +303,9 @@
     <Compile Include="Services\ChallengeDbService.cs" />
     <Compile Include="Services\ChallengeHelper.cs" />
     <Compile Include="Services\OpenAIHttpClientService.cs" />
+    <Compile Include="Services\Verifiers\CollectiveVerifier.cs" />
+    <Compile Include="Services\Verifiers\IVerifier.cs" />
+    <Compile Include="Services\Verifiers\PerImageVerifier.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Areas\HelpPage\HelpPage.css" />
@@ -498,6 +506,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202508161322541_AdjustUserStageModelStatus.resx">
       <DependentUpon>202508161322541_AdjustUserStageModelStatus.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202508171039176_AddChallengeTypeInStageModel.resx">
+      <DependentUpon>202508171039176_AddChallengeTypeInStageModel.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>

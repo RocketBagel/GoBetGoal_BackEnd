@@ -16,6 +16,10 @@ namespace GoBetGoal_BackEnd.Models
         [StringLength(50)]
         public string VerificationMode { get; set; }
 
+        [StringLength(50)]
+        public string ChallengeType { get; set; }
+
+
         [StringLength(500)]
         public string StageSampleImagePath { get; set; }
         

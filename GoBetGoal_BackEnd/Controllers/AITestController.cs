@@ -1,6 +1,10 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
@@ -16,29 +20,45 @@ namespace GoBetGoal_BackEnd.Controllers
     public class AITestController : ApiController
     {
         //    // 我們將建立一個路由為 /api/AITest/AnalyzeImage 的 POST 端點
-        //    [HttpPost]
-        //    [Route("api/AITest/AnalyzeImage")]
-        //    [AllowAnonymous]
-        //    public async Task<IHttpActionResult> AnalyzeImage([FromBody] ImageTestRequest request)
-        //    {
-        //        // 檢查前端是否有傳來圖片 URL
-        //        if (request == null || string.IsNullOrEmpty(request.ImageUrl))
-        //        {
-        //            return BadRequest("請提供圖片的 URL。");
-        //        }
+        private const string OpenAI_Api_Url = "https://api.openai.com/v1/chat/completions";
 
-        //        // 呼叫我們之前建立好的 OpenAIHttpClientService 來執行分析
-        //        // 這裡我們直接使用 gpt-4o-mini 來測試，速度快且便宜
-        //        string analysisResult = await OpenAIHttpClientService.AnalyzeImageAsync(request.ImageUrl, "gpt-4o-mini");
+        [HttpGet]
+        [Route("api/test/openai")]
+        public async Task<IHttpActionResult> TestOpenAI()
+        {
+            var apiKey = System.Configuration.ConfigurationManager.AppSettings["OpenAI_ApiKey"];
+            if (string.IsNullOrEmpty(apiKey))
+                return BadRequest("未設定 OpenAI API Key");
 
-        //        // 將 AI 回傳的原始分析結果直接回傳給測試工具
-        //        return Ok(new
-        //        {
-        //            SourceImageUrl = request.ImageUrl,
-        //            AI_Response = analysisResult
-        //        });
-        //    }
+            // 簡單 prompt
+            string prompt = "Say hello in Traditional Chinese.";
 
+            // 組裝訊息
+            var requestBody = new
+            {
+                model = "gpt-4o",
+                messages = new[]
+                {
+                new { role = "user", content = prompt }
+            },
+                max_tokens = 100
+            };
+
+            var jsonContent = JsonConvert.SerializeObject(requestBody);
+            using (var client = new HttpClient())
+            using (var content = new StringContent(jsonContent, Encoding.UTF8, "application/json"))
+            using (var request = new HttpRequestMessage(HttpMethod.Post, OpenAI_Api_Url))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+                request.Content = content;
+
+                var response = await client.SendAsync(request);
+                var responseJson = await response.Content.ReadAsStringAsync();
+
+                // 回傳完整 JSON，包含 usage
+                return Ok(responseJson);
+            }
+        }
 
 
     }
