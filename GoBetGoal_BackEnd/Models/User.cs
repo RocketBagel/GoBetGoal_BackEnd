@@ -67,6 +67,15 @@ namespace GoBetGoal_BackEnd.Models
 
         public virtual ICollection<PostLike> PostLikes { get; set; } = new List<PostLike>();
 
+        public virtual ICollection<TrialParticipant> SendInviters { get; set; } = new List<TrialParticipant>();
+        public virtual ICollection<TrialParticipant> Invitees { get; set; } = new List<TrialParticipant>();
+        public virtual ICollection<UserTrialTemplate> UserTrialTemplates { get; set; } = new List<UserTrialTemplate>();
+        public virtual ICollection<BagelTransaction> BagelTransactions { get; set; } = new List<BagelTransaction>();
+        public virtual ICollection<PaymentTransaction> PaymentTransactions { get; set; } = new List<PaymentTransaction>();
+        public virtual ICollection<FriendsRelationship> SendFriends { get; set; } = new List<FriendsRelationship>();
+        public virtual ICollection<FriendsRelationship> ReceivedFriends { get; set; } = new List<FriendsRelationship>();
+        public virtual ICollection<UserAchievement> UserAchievements { get; set; } = new List<UserAchievement>();
+
 
 
     }
