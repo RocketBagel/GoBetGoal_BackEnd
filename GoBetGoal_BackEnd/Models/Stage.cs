@@ -37,8 +37,6 @@ namespace GoBetGoal_BackEnd.Models
 
         [Required]
         public int TrialTemplateId { get; set; }
-
-        [ForeignKey("TrialTemplateId")]
         public virtual TrialTemplate TrialTemplate { get; set; }
 
         //[Required]

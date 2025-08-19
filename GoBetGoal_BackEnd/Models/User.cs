@@ -56,8 +56,17 @@ namespace GoBetGoal_BackEnd.Models
         public DateTime? UpdatedAt { get; set; }
 
         public virtual ICollection<UserAvatar> UserAvatars { get; set; }= new List<UserAvatar>();
+
         public virtual ICollection<Trial> Trials { get; set; }=new List<Trial>();
+
         public virtual ICollection<UserStage> UserStages { get; set; } = new List<UserStage>();
+
+        public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
+
+        public virtual ICollection<TrialLike> TrialLikes { get; set; } = new List<TrialLike>();
+
+        public virtual ICollection<PostLike> PostLikes { get; set; } = new List<PostLike>();
+
 
 
     }

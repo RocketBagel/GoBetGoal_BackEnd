@@ -78,7 +78,6 @@ namespace GoBetGoal_BackEnd.Controllers
                     // 不需要再手動設定 UserId！
                     // User = newUser, // 也可以這樣寫，EF 都看得懂
                     AvatarId = avatar.Id,
-                    AcquiredAt = DateTime.Now
                 });
 
             }

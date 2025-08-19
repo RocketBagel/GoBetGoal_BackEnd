@@ -15,12 +15,10 @@ namespace GoBetGoal_BackEnd.Models
 
         [Required]
         public Guid UserId { get; set; }
-        [ForeignKey("UserId")]
         public virtual User User { get; set; }
 
         [Required]
         public int TrialTemplateId { get; set; }
-        [ForeignKey("TrialTemplateId")]
         public virtual TrialTemplate TrialTemplate { get; set; }
 
         [Required]
@@ -47,6 +45,10 @@ namespace GoBetGoal_BackEnd.Models
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public virtual ICollection<UserStage> UserStages { get; set; } = new List<UserStage>();
+
+        public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
+
+        public virtual ICollection<TrialLike> TrialLikes { get; set; } = new List<TrialLike>();
 
 
         //public virtual ICollection<UserTrial> UserTrials { get; set; } = new List<UserTrial>();

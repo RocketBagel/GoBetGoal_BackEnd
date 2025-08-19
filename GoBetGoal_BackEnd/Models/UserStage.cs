@@ -15,17 +15,14 @@ namespace GoBetGoal_BackEnd.Models
 
         [Required]
         public Guid UserId { get; set; }
-        [ForeignKey("UserId")]
         public virtual User User { get; set; }
 
         [Required]
         public int TrialId { get; set; }
-        [ForeignKey("TrialId")]
         public virtual Trial Trial { get; set; }
 
         [Required]
         public int StageId { get; set; }
-        [ForeignKey("StageId")]
         public virtual Stage Stage { get; set; }
 
         [StringLength(500)]
@@ -57,6 +54,7 @@ namespace GoBetGoal_BackEnd.Models
         [Column(TypeName = "datetime2")]
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
+        public virtual Post Post { get; set; } //一對一
 
     }
 }

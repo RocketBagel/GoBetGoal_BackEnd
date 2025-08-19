@@ -7,13 +7,13 @@ namespace GoBetGoal_BackEnd.Migrations
     using System.Resources;
     
     [GeneratedCode("EntityFramework.Migrations", "6.5.1")]
-    public sealed partial class AddFilteredIndexToUserNickName : IMigrationMetadata
+    public sealed partial class InitialCreate : IMigrationMetadata
     {
-        private readonly ResourceManager Resources = new ResourceManager(typeof(AddFilteredIndexToUserNickName));
+        private readonly ResourceManager Resources = new ResourceManager(typeof(InitialCreate));
         
         string IMigrationMetadata.Id
         {
-            get { return "202508101718256_AddFilteredIndexToUserNickName"; }
+            get { return "202508190214192_InitialCreate"; }
         }
         
         string IMigrationMetadata.Source
