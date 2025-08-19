@@ -13,6 +13,7 @@ namespace GoBetGoal_BackEnd.Enums
         perfect = 3,
         fail = 4,
         quit = 5,
-        cheat = 6
+        cheat = 6,
+        accepted = 7
     }
 }

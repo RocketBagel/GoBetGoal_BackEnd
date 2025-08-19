@@ -199,8 +199,10 @@
     <Compile Include="Controllers\TrialController.cs" />
     <Compile Include="Controllers\UsersController.cs" />
     <Compile Include="Controllers\ValuesController.cs" />
+    <Compile Include="Enums\Method.cs" />
     <Compile Include="Enums\ProductType.cs" />
     <Compile Include="Enums\Status.cs" />
+    <Compile Include="Enums\TransactionType.cs" />
     <Compile Include="Filters\GlobalExceptionFilter.cs" />
     <Compile Include="Filters\ValidateModelAttribute.cs" />
     <Compile Include="Global.asax.cs">
@@ -210,8 +212,14 @@
     <Compile Include="Migrations\202508190214192_InitialCreate.Designer.cs">
       <DependentUpon>202508190214192_InitialCreate.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202508190659143_AddTrialAndTransactionAndFriendAndAchievementRelativeModels.cs" />
+    <Compile Include="Migrations\202508190659143_AddTrialAndTransactionAndFriendAndAchievementRelativeModels.Designer.cs">
+      <DependentUpon>202508190659143_AddTrialAndTransactionAndFriendAndAchievementRelativeModels.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
+    <Compile Include="Models\Achievement.cs" />
     <Compile Include="Models\Avatar.cs" />
+    <Compile Include="Models\BagelTransaction.cs" />
     <Compile Include="Models\Context.cs" />
     <Compile Include="Models\DTOs\AiApiDto.cs" />
     <Compile Include="Models\DTOs\AvatarDto.cs" />
@@ -229,15 +237,20 @@
     <Compile Include="Models\DTOs\UpdateAvatarRequestDto.cs" />
     <Compile Include="Models\DTOs\UpdateProfileRequestDto.cs" />
     <Compile Include="Models\DTOs\UserProfileDto.cs" />
+    <Compile Include="Models\FriendsRelationship.cs" />
+    <Compile Include="Models\PaymentTransaction.cs" />
     <Compile Include="Models\Post.cs" />
     <Compile Include="Models\PostLike.cs" />
     <Compile Include="Models\Stage.cs" />
     <Compile Include="Models\Trial.cs" />
     <Compile Include="Models\TrialLike.cs" />
+    <Compile Include="Models\TrialParticipant.cs" />
     <Compile Include="Models\TrialTemplate.cs" />
     <Compile Include="Models\User.cs" />
+    <Compile Include="Models\UserAchievement.cs" />
     <Compile Include="Models\UserAvatar.cs" />
     <Compile Include="Models\UserStage.cs" />
+    <Compile Include="Models\UserTrialTemplate.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Security\JwtAuthFilter.cs" />
     <Compile Include="Security\JwtAuthUtility.cs" />
@@ -399,6 +412,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Migrations\202508190214192_InitialCreate.resx">
       <DependentUpon>202508190214192_InitialCreate.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202508190659143_AddTrialAndTransactionAndFriendAndAchievementRelativeModels.resx">
+      <DependentUpon>202508190659143_AddTrialAndTransactionAndFriendAndAchievementRelativeModels.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>

@@ -73,6 +73,7 @@ namespace GoBetGoal_BackEnd.Models
 
         public virtual ICollection<Stage> Stages { get; set; } = new List<Stage>();
         public virtual ICollection<Trial> Trials { get; set; }=new List<Trial>();
+        public virtual ICollection<UserTrialTemplate> UserTrialTemplates { get; set; } = new List<UserTrialTemplate>();
 
 
 

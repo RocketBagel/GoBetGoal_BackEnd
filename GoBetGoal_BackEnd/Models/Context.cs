@@ -22,6 +22,16 @@ namespace GoBetGoal_BackEnd.Models
         public DbSet<Post> Posts { get; set; }
         public DbSet<PostLike> PostLikes { get; set; }
         public DbSet<TrialLike> TrialLikes { get; set; }
+        public DbSet<UserTrialTemplate> UserTrialTemplates { get; set; }
+        public DbSet<TrialParticipant> TrialParticipants { get; set; }
+
+        public DbSet<BagelTransaction> BagelTransactions { get; set; }
+        public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
+        public DbSet<FriendsRelationship> FriendsRelationships { get; set; }
+        public DbSet<Achievement> Achievements { get; set; }
+        public DbSet<UserAchievement> UserAchievements { get; set; }
+
+
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
@@ -136,6 +146,82 @@ namespace GoBetGoal_BackEnd.Models
                 .WithMany(p => p.PostLikes) // <== 明確指定 Post.cs 中的 PostLikes 集合
                 .HasForeignKey(pl => pl.PostId)
                 .WillCascadeOnDelete(true); // Post 刪除時，相關的按讚紀錄應一起刪除
+
+            // --- Achievement & UserAchievement (多對多) ---
+            modelBuilder.Entity<UserAchievement>()
+                .HasRequired(ua => ua.User)
+                .WithMany(u => u.UserAchievements)
+                .HasForeignKey(ua => ua.UserId)
+                .WillCascadeOnDelete(false);
+
+            modelBuilder.Entity<UserAchievement>()
+                .HasRequired(ua => ua.Achievement)
+                .WithMany(a => a.UserAchievements)
+                .HasForeignKey(ua => ua.AchievementId)
+                .WillCascadeOnDelete(false);
+
+            // --- User & UserTrialTemplate (多對多) ---
+            modelBuilder.Entity<UserTrialTemplate>()
+                .HasRequired(utt => utt.User)
+                .WithMany(u => u.UserTrialTemplates)
+                .HasForeignKey(utt => utt.UserId)
+                .WillCascadeOnDelete(false);
+
+            modelBuilder.Entity<UserTrialTemplate>()
+                .HasRequired(utt => utt.TrialTemplate)
+                .WithMany(tt => tt.UserTrialTemplates)
+                .HasForeignKey(utt => utt.TrialTemplateId)
+                .WillCascadeOnDelete(false);
+
+            // --- Transaction Tables ---
+            modelBuilder.Entity<BagelTransaction>()
+                .HasRequired(bt => bt.User)
+                .WithMany(u => u.BagelTransactions)
+                .HasForeignKey(bt => bt.UserId)
+                .WillCascadeOnDelete(false);
+
+            modelBuilder.Entity<PaymentTransaction>()
+                .HasRequired(pt => pt.User)
+                .WithMany(u => u.PaymentTransactions)
+                .HasForeignKey(pt => pt.UserId)
+                .WillCascadeOnDelete(false);
+
+            // --- FriendsRelationship (兩個指向 User 的 FK) ---
+            // 1. 發送邀請的使用者
+            modelBuilder.Entity<FriendsRelationship>()
+                .HasRequired(fr => fr.User)
+                .WithMany(u => u.SendFriends)
+                .HasForeignKey(fr => fr.UserId)
+                .WillCascadeOnDelete(false);
+
+            // 2. 被邀請的使用者
+            modelBuilder.Entity<FriendsRelationship>()
+                .HasRequired(fr => fr.Invitee)
+                .WithMany(u => u.ReceivedFriends)
+                .HasForeignKey(fr => fr.InviteeId)
+                .WillCascadeOnDelete(false);
+
+            // --- TrialParticipant (兩個指向 User 的 FK) ---
+            // 1. 發送邀請的參與者
+            modelBuilder.Entity<TrialParticipant>()
+                .HasRequired(tp => tp.Participant)
+                .WithMany(u => u.SendInviters)
+                .HasForeignKey(tp => tp.ParticipantId)
+                .WillCascadeOnDelete(false);
+
+            // 2. 被邀請者
+            modelBuilder.Entity<TrialParticipant>()
+                .HasRequired(tp => tp.Invitee)
+                .WithMany(u => u.Invitees)
+                .HasForeignKey(tp => tp.InviteeId)
+                .WillCascadeOnDelete(false);
+
+            // Trial (一) -> TrialParticipant (多)
+            modelBuilder.Entity<TrialParticipant>()
+                .HasRequired(tp => tp.Trial)
+                .WithMany(t => t.TrialParticipants)
+                .HasForeignKey(tp => tp.TrialId)
+                .WillCascadeOnDelete(true); // 試煉刪除時，參與者紀錄應一起刪除
         }
     }
 }
