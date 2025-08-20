@@ -125,7 +125,7 @@ namespace GoBetGoal_BackEnd.Controllers
 
                 var userStages = _db.UserStages.Where(x => x.UserId == user.Id && x.TrialId == trial.Id);
 
-                var passCount = userStages.Count(x=>x.Status==Status.pass || x.Status==Status.perfect || x.Status == Status.cheat);
+                var passCount = userStages.Count(x => x.Status == Status.pass || x.Status == Status.cheat);
                 var cheatBlanketCount = userStages.Count(x => x.Status == Status.cheat);
                 var failCount = userStages.Count(x => x.Status == Status.fail);
 
@@ -142,7 +142,7 @@ namespace GoBetGoal_BackEnd.Controllers
                     trialStageProgressDto.StageDescription = stage.StageDescription;
                     trialStageProgressDto.StageSampleImagePath = stage.StageSampleImagePath;
 
-                    trialStageProgressDto.StartTime =userStage?.StartTime;
+                    trialStageProgressDto.StartTime = userStage?.StartTime;
                     trialStageProgressDto.EndTime = userStage?.EndTime;
                     trialStageProgressDto.Status = userStage?.Status.ToString();
                     trialStageProgressDto.UploadImagePath = userStage?.UploadImagePath;
@@ -166,9 +166,9 @@ namespace GoBetGoal_BackEnd.Controllers
                 var trialParticipantDto = new TrialParticipantDto();
                 trialParticipantDto.UserInfo = userProfileDto;
                 trialParticipantDto.JoinedAt = joinedAt;
-                trialParticipantDto.PassCount= passCount;
-                trialParticipantDto.CheatBlanketCount= cheatBlanketCount;
-                trialParticipantDto.FailCount= failCount;
+                trialParticipantDto.PassCount = passCount;
+                trialParticipantDto.CheatBlanketCount = cheatBlanketCount;
+                trialParticipantDto.FailCount = failCount;
                 trialParticipantDto.Stages = trialStageProgressDtoList;
                 trialParticipantDto.FriendState = friendState;
 
@@ -187,6 +187,31 @@ namespace GoBetGoal_BackEnd.Controllers
             }
 
             trialDetailDto.Participants = sortedParticipants;
+
+            var trialLikes = _db.TrialLikes
+    .Include(x => x.User.UserAvatars.Select(y => y.Avatar)) // 連同使用者和頭像一起抓
+    .Where(x => x.TrialId == id)  // 篩選出指定試煉的喜歡
+    .OrderBy(x => x.CreatedAt)    // 按時間排序
+    .ToList();                     // 轉成 List，方便後續操作
+
+            var trialLikeDtos = trialLikes.Select(x => new TrialLikeDto
+            {
+                UserId = x.UserId,
+                Email = x.User.Email,
+                PlayerId = x.User.PlayerId,
+                NickName = x.User.NickName,
+                BagelCount = x.User.BagelCount,
+                CheatBlanketCount = x.User.CheatBlanketCount,
+
+                // 取 IsCurrent = true 的頭像，如果沒有就 null
+                CurrentAvatarUrl = x.User.UserAvatars
+        .Where(a => a.IsCurrent)   // 篩選出目前使用的頭像
+        .Select(a => a.Avatar.AvatarImagePath) // 取頭像的 Url
+        .FirstOrDefault()          // 如果沒有就回傳 null
+            }).ToList();
+
+            trialDetailDto.TrialLikes = trialLikeDtos;
+
 
             return Ok(trialDetailDto);
         }
