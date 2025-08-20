@@ -196,6 +196,7 @@
     <Compile Include="Controllers\BaseApiController.cs" />
     <Compile Include="Controllers\ChallengeController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
+    <Compile Include="Controllers\TrialController.cs" />
     <Compile Include="Controllers\UsersController.cs" />
     <Compile Include="Controllers\ValuesController.cs" />
     <Compile Include="Enums\Method.cs" />
@@ -228,6 +229,10 @@
     <Compile Include="Models\DTOs\RegisterStepTwoRequestDto.cs" />
     <Compile Include="Models\DTOs\AuthSuccessResponseDto.cs" />
     <Compile Include="Models\DTOs\SuccessResponseDto.cs" />
+    <Compile Include="Models\DTOs\TrialDetailDto.cs" />
+    <Compile Include="Models\DTOs\TrialTemplateInfoDto.cs" />
+    <Compile Include="Models\DTOs\TrialParticipantDto.cs" />
+    <Compile Include="Models\DTOs\TrialStageProgressDto.cs" />
     <Compile Include="Models\DTOs\UpdateAvatarRequestDto.cs" />
     <Compile Include="Models\DTOs\UpdateProfileRequestDto.cs" />
     <Compile Include="Models\DTOs\UserProfileDto.cs" />
@@ -329,6 +334,7 @@
     <Folder Include="Views\Auth\" />
     <Folder Include="Views\Avatars\" />
     <Folder Include="Views\Challenge\" />
+    <Folder Include="Views\Trial\" />
     <Folder Include="Views\Users\" />
   </ItemGroup>
   <ItemGroup>

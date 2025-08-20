@@ -47,5 +47,26 @@ namespace GoBetGoal_BackEnd.Controllers
             // 3. 拋出包含此詳細回應的例外
             throw new HttpResponseException(response);
         }
+
+        /// <summary>
+        /// 【溫和模式】「嘗試」取得當前登入者的 User ID。
+        /// 這個方法適用於允許「訪客」和「已登入會員」同時存取的 API。
+        /// </summary>
+        /// <returns>如果使用者已登入且 Token 有效，則回傳使用者的 Guid；否則回傳 null。</returns>
+        protected Guid? TryGetCurrentUserId()
+        {
+            try
+            {
+                // 直接呼叫上面那個「嚴格模式」的方法
+                return GetCurrentUserId();
+            }
+            catch (HttpResponseException)
+            {
+                // 如果 GetCurrentUserId() 因為 Token 無效或不存在而拋出 401 例外，
+                // 我們就捕捉這個例外，並安靜地回傳 null。
+                // 這代表「好的，我知道這個使用者是訪客」。
+                return null;
+            }
+        }
     }
 }
