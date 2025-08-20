@@ -27,6 +27,7 @@ namespace GoBetGoal_BackEnd.Models
         public Status Status { get; set; }  //狀態(Pending,Success,Failed)
 
         [Required]
+        [Column(TypeName = "datetime2")]
         public DateTime CreatedAt { get; set; } = DateTime.Now;    //建立時間
     }
 }

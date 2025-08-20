@@ -12,7 +12,8 @@ namespace GoBetGoal_BackEnd.Models
         public int Id { get; set; }
 
         [Required]
-        public int AchievementTitle { get; set; }
+        [StringLength(200)]
+        public string AchievementTitle { get; set; }
 
         [Required]
         [StringLength(200)]

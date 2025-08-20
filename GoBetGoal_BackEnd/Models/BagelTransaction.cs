@@ -52,6 +52,7 @@ namespace GoBetGoal_BackEnd.Models
         public int BalanceAfter { get; set; }
 
         [Required]
+        [Column(TypeName = "datetime2")]
         public DateTime CreatedAt { get; set; } = DateTime.Now;
     }
 }

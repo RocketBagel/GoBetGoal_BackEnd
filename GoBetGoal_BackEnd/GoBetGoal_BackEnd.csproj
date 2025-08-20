@@ -216,6 +216,10 @@
     <Compile Include="Migrations\202508190659143_AddTrialAndTransactionAndFriendAndAchievementRelativeModels.Designer.cs">
       <DependentUpon>202508190659143_AddTrialAndTransactionAndFriendAndAchievementRelativeModels.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202508200818156_AddDatetimeColumnTypeToRequiredModels.cs" />
+    <Compile Include="Migrations\202508200818156_AddDatetimeColumnTypeToRequiredModels.Designer.cs">
+      <DependentUpon>202508200818156_AddDatetimeColumnTypeToRequiredModels.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\Achievement.cs" />
     <Compile Include="Models\Avatar.cs" />
@@ -414,6 +418,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202508190659143_AddTrialAndTransactionAndFriendAndAchievementRelativeModels.resx">
       <DependentUpon>202508190659143_AddTrialAndTransactionAndFriendAndAchievementRelativeModels.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202508200818156_AddDatetimeColumnTypeToRequiredModels.resx">
+      <DependentUpon>202508200818156_AddDatetimeColumnTypeToRequiredModels.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
