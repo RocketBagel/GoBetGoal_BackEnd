@@ -8,8 +8,8 @@ namespace GoBetGoal_BackEnd.Models.DTOs
     public class TrialDetailDto
     {
         // 試煉本身的資訊
-        public Guid Id { get; set; }
-        public string Title { get; set; }
+        public int Id { get; set; }
+        public string TrialName { get; set; }
         public DateTime StartAt { get; set; }
         public DateTime EndAt { get; set; }
         public string TrialStatus { get; set; }

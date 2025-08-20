@@ -225,7 +225,6 @@
     <Compile Include="Models\DTOs\AvatarDto.cs" />
     <Compile Include="Models\DTOs\ErrorResponseDto.cs" />
     <Compile Include="Models\DTOs\LoginRequestDto.cs" />
-    <Compile Include="Models\DTOs\PublicUserProfileDto.cs" />
     <Compile Include="Models\DTOs\RegisterStepOneRequestDto.cs" />
     <Compile Include="Models\DTOs\RegisterStepTwoRequestDto.cs" />
     <Compile Include="Models\DTOs\AuthSuccessResponseDto.cs" />

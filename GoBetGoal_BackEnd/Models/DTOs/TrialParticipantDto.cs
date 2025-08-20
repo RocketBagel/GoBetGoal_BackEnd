@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Web;
 
@@ -9,8 +10,13 @@ namespace GoBetGoal_BackEnd.Models.DTOs
     public class TrialParticipantDto
     {
         // 參與者的基本公開資訊 (我們可以複用之前建立的 UserProfileDto，或建立一個新的)
-        public PublicUserProfileDto UserInfo { get; set; }
+        public UserProfileDto UserInfo { get; set; }
         public DateTime JoinedAt { get; set; } // 加入試煉的時間，用於排序
+
+        public int PassCount { get; set; }
+        public int CheatBlanketCount { get; set; }
+        
+        public int FailCount{ get; set; }
 
         // 這位參與者所有關卡的進度列表
         public List<TrialStageProgressDto> Stages { get; set; }
