@@ -21,5 +21,8 @@ namespace GoBetGoal_BackEnd.Models.DTOs
 
         // 所有參與者的詳細資訊列表
         public List<TrialParticipantDto> Participants { get; set; }
+
+        public List<TrialLikeDto> TrialLikes { get; set; }
+
     }
 }
