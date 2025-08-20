@@ -62,6 +62,7 @@ namespace GoBetGoal_BackEnd.Controllers
                 Email = normalizedEmail,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password),
                 PlayerId = newPlayerId,
+                NickName = newPlayerId,
                 UserAvatars = new List<UserAvatar>() // 初始化集合
             };
 
