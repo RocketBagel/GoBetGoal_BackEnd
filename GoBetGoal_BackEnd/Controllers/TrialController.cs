@@ -16,7 +16,7 @@ namespace GoBetGoal_BackEnd.Controllers
         private readonly Context _db = new Context();
 
         [HttpGet]
-        [Route("api/trials/{id}")]
+        [Route("api/trial/details/{id}")]
         [AllowAnonymous] // *** 標記為公開，允許訪客存取 ***
         public IHttpActionResult GetTrialDetails(int id)
         {
@@ -103,7 +103,7 @@ namespace GoBetGoal_BackEnd.Controllers
                 userProfileDto.TotalTrialCount = _db.TrialParticipants
         .Count(tp => tp.InviteeId == user.Id && tp.Status == Status.accepted);
                 userProfileDto.LikedPostsCount = _db.PostLikes
-        .Count(lp => lp.UserId == user.Id);
+        .Count(like => like.Post.UserId == user.Id);
                 userProfileDto.FriendCount = _db.FriendsRelationships
         .Count(fr => (fr.UserId == user.Id || fr.InviteeId == user.Id)
                   && fr.Status == Status.accepted);
@@ -187,6 +187,8 @@ namespace GoBetGoal_BackEnd.Controllers
             }
 
             trialDetailDto.Participants = sortedParticipants;
+
+            //圍觀
 
             var trialLikes = _db.TrialLikes
     .Include(x => x.User.UserAvatars.Select(y => y.Avatar)) // 連同使用者和頭像一起抓
