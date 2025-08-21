@@ -16,7 +16,7 @@ namespace GoBetGoal_BackEnd.Controllers
         private readonly Context _db = new Context();
 
         [HttpGet]
-        [Route("api/trials/{id}")]
+        [Route("api/trial/details/{id}")]
         [AllowAnonymous] // *** 標記為公開，允許訪客存取 ***
         public IHttpActionResult GetTrialDetails(int id)
         {
