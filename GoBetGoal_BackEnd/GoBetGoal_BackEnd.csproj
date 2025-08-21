@@ -220,6 +220,10 @@
     <Compile Include="Migrations\202508200818156_AddDatetimeColumnTypeToRequiredModels.Designer.cs">
       <DependentUpon>202508200818156_AddDatetimeColumnTypeToRequiredModels.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202508211112155_UpdateUserAchievementModel2.cs" />
+    <Compile Include="Migrations\202508211112155_UpdateUserAchievementModel2.Designer.cs">
+      <DependentUpon>202508211112155_UpdateUserAchievementModel2.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\Achievement.cs" />
     <Compile Include="Models\Avatar.cs" />
@@ -422,6 +426,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202508200818156_AddDatetimeColumnTypeToRequiredModels.resx">
       <DependentUpon>202508200818156_AddDatetimeColumnTypeToRequiredModels.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202508211112155_UpdateUserAchievementModel2.resx">
+      <DependentUpon>202508211112155_UpdateUserAchievementModel2.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>

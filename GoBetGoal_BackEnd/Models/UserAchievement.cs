@@ -22,5 +22,9 @@ namespace GoBetGoal_BackEnd.Models
 
         [Column(TypeName = "datetime2")]
         public DateTime AcquiredAt { get; set; } = DateTime.Now;
+
+        public int? TrialId { get; set; }
+        public virtual Trial Trial { get; set; }
+
     }
 }

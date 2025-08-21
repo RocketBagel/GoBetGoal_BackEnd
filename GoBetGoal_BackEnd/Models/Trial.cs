@@ -52,6 +52,8 @@ namespace GoBetGoal_BackEnd.Models
 
         public virtual ICollection<TrialParticipant> TrialParticipants { get; set; } = new List<TrialParticipant>();
 
+        public virtual ICollection<UserAchievement> UserAchievements { get; set; } = new List<UserAchievement>();
+
 
         //public virtual ICollection<UserTrial> UserTrials { get; set; } = new List<UserTrial>();
 

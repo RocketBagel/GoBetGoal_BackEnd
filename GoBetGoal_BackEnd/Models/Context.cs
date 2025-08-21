@@ -133,6 +133,13 @@ namespace GoBetGoal_BackEnd.Models
                 .HasForeignKey(tl => tl.TrialId)
                 .WillCascadeOnDelete(true); // Trial 刪除時，相關的按讚紀錄應一起刪除
 
+            // Trial (一) -> UserAchievement (多) (Join Table)
+            modelBuilder.Entity<UserAchievement>()
+                .HasRequired(ua => ua.Trial)
+                .WithMany(a => a.UserAchievements) // <== 明確指定 Trial.cs 中的 UserAchievements 集合
+                .HasForeignKey(ua => ua.TrialId)
+                .WillCascadeOnDelete(false);
+
             // --- UserStage 相關關聯 ---
             // UserStage (Principal, 1) -> Post (Dependent, 0..1)
             modelBuilder.Entity<Post>()
