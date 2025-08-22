@@ -247,6 +247,7 @@
     <Compile Include="Models\DTOs\TrialTemplateListDto.cs" />
     <Compile Include="Models\DTOs\UpdateAvatarRequestDto.cs" />
     <Compile Include="Models\DTOs\UpdateProfileRequestDto.cs" />
+    <Compile Include="Models\DTOs\UseCheatBlanketResponseDto.cs" />
     <Compile Include="Models\DTOs\UserProfileDto.cs" />
     <Compile Include="Models\FriendsRelationship.cs" />
     <Compile Include="Models\PaymentTransaction.cs" />
@@ -346,6 +347,7 @@
     <Folder Include="Views\Auth\" />
     <Folder Include="Views\Avatars\" />
     <Folder Include="Views\Challenge\" />
+    <Folder Include="Views\Products\" />
     <Folder Include="Views\Trial\" />
     <Folder Include="Views\Users\" />
   </ItemGroup>
