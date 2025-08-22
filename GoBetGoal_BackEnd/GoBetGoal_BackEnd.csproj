@@ -197,6 +197,7 @@
     <Compile Include="Controllers\ChallengeController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\TrialController.cs" />
+    <Compile Include="Controllers\TrialsController.cs" />
     <Compile Include="Controllers\UsersController.cs" />
     <Compile Include="Controllers\ValuesController.cs" />
     <Compile Include="Enums\Method.cs" />
@@ -236,12 +237,14 @@
     <Compile Include="Models\DTOs\RegisterStepOneRequestDto.cs" />
     <Compile Include="Models\DTOs\RegisterStepTwoRequestDto.cs" />
     <Compile Include="Models\DTOs\AuthSuccessResponseDto.cs" />
+    <Compile Include="Models\DTOs\StageInfoDto.cs" />
     <Compile Include="Models\DTOs\SuccessResponseDto.cs" />
     <Compile Include="Models\DTOs\TrialDetailDto.cs" />
     <Compile Include="Models\DTOs\TrialLikeDto.cs" />
     <Compile Include="Models\DTOs\TrialTemplateInfoDto.cs" />
     <Compile Include="Models\DTOs\TrialParticipantDto.cs" />
     <Compile Include="Models\DTOs\TrialStageProgressDto.cs" />
+    <Compile Include="Models\DTOs\TrialTemplateListDto.cs" />
     <Compile Include="Models\DTOs\UpdateAvatarRequestDto.cs" />
     <Compile Include="Models\DTOs\UpdateProfileRequestDto.cs" />
     <Compile Include="Models\DTOs\UseCheatBlanketResponseDto.cs" />
