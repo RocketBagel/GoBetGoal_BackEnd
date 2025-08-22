@@ -72,7 +72,7 @@
                 "dbo.Posts",
                 c => new
                     {
-                        Id = c.Int(nullable: false),
+                        Id = c.Int(nullable: false, identity: true),
                         CreatedAt = c.DateTime(nullable: false, precision: 7, storeType: "datetime2"),
                         Content = c.String(),
                         UserId = c.Guid(nullable: false),

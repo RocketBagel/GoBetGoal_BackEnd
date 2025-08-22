@@ -10,6 +10,7 @@ namespace GoBetGoal_BackEnd.Models
     public class Post
     {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
         [Required]
