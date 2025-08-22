@@ -8,6 +8,7 @@ namespace GoBetGoal_BackEnd.Models.DTOs
     // 代表某位使用者在某一關卡的進度
     public class TrialStageProgressDto
     {
+        public int StageId { get; set; }
         public int StageIndex { get; set; }
         public string StageDescription { get; set; }
         public string StageSampleImagePath { get; set; }

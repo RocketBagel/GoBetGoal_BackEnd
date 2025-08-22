@@ -138,6 +138,7 @@ namespace GoBetGoal_BackEnd.Controllers
                     var userStage = _db.UserStages.FirstOrDefault(us => us.UserId == user.Id && us.StageId == stage.Id);
 
                     var trialStageProgressDto = new TrialStageProgressDto();
+                    trialStageProgressDto.StageId=stage.Id;
                     trialStageProgressDto.StageIndex = stage.StageIndex;
                     trialStageProgressDto.StageDescription = stage.StageDescription;
                     trialStageProgressDto.StageSampleImagePath = stage.StageSampleImagePath;
@@ -217,6 +218,101 @@ namespace GoBetGoal_BackEnd.Controllers
 
             return Ok(trialDetailDto);
         }
+
+        [HttpPost]
+        [Route("api/trial/{trialId}/stage/{stageId}/use-cheat-blanket")]
+        public IHttpActionResult UseCheatBlanket(int trialId, int stageId)
+        {
+            Guid currentUserId = GetCurrentUserId();
+
+            var user = _db.Users.Find(currentUserId);
+            if (user == null)
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "USER_NOT_FOUND",
+                    Message = "指定的使用者不存在。"
+                };
+                return Content(HttpStatusCode.NotFound, error);
+            }
+
+            if (user.CheatBlanketCount <= 0)
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "NO_CHEAT_BLANKET_AVAILABLE",
+                    Message = "您的遮羞布數量不足。"
+                };
+                return Content(HttpStatusCode.NotFound, error);
+            }
+
+            // b. (可選但建議) 檢查使用者是否真的是這個試煉的參與者
+            bool isParticipant = _db.TrialParticipants.Any(p => p.TrialId == trialId && p.InviteeId == currentUserId && p.Status == Status.accepted);
+            if (!isParticipant)
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "NOT_A_PARTICIPANT",
+                    Message = "您並非此試煉的參與者。"
+                };
+                // 403 Forbidden 代表「你已登入，但無權對此資源操作」
+                return Content(HttpStatusCode.Forbidden, error);
+            }
+
+            // b. 找出使用者在這個試煉、這個關卡的「進度紀錄 (UserStage)」
+            var userStageToUpdate = _db.UserStages.FirstOrDefault(us =>
+                us.TrialId == trialId &&
+                us.UserId == currentUserId &&
+                us.StageId == stageId
+            );
+
+            // c. 檢查這筆進度紀錄是否存在
+            if (userStageToUpdate == null)
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "STAGE_PROGRESS_NOT_FOUND",
+                    Message = "找不到您在此關卡的進度紀錄。"
+                };
+                return Content(HttpStatusCode.NotFound, error);
+            }
+
+            // d. (可選但建議) 檢查這個關卡是否已經通關了，避免重複使用
+            if (userStageToUpdate.Status == Status.pass || userStageToUpdate.Status == Status.cheat)
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "STAGE_ALREADY_COMPLETED",
+                    Message = "此關卡已通關，無法使用遮羞布。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
+            user.CheatBlanketCount--;
+
+
+            // b. 更新 UserStage 的狀態
+            userStageToUpdate.Status = Status.cheat;
+
+            try
+            {
+                _db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+
+            // 5. 準備成功的回應 (不變)
+            var successResponse = new UseCheatBlanketResponseDto
+            {
+                Message = "成功使用遮羞布！",
+                RemainingCheatBlanketCount = user.CheatBlanketCount
+            };
+
+            return Ok(successResponse);
+        }
+
 
         // 釋放資料庫連線資源
         protected override void Dispose(bool disposing)
