@@ -1,4 +1,5 @@
-﻿using GoBetGoal_BackEnd.Models;
+﻿using GoBetGoal_BackEnd.Enums;
+using GoBetGoal_BackEnd.Models;
 using GoBetGoal_BackEnd.Models.DTOs;
 using Swashbuckle.Swagger.Annotations;
 using System;
@@ -271,6 +272,11 @@ namespace GoBetGoal_BackEnd.Controllers
                     NickName = a.NickName,
                     BagelCount = a.BagelCount,
                     CheatBlanketCount = a.CheatBlanketCount,
+                    TotalTrialCount= a.Invitees.Count(x=>x.Status==Status.accepted),
+                    LikedPostsCount = _db.PostLikes.Count(x => x.Post.UserId == a.Id),
+                    FriendCount = _db.FriendsRelationships
+                .Count(f => f.Status == Status.accepted && (f.UserId == a.Id || f.InviteeId == a.Id)),
+
                     CreatedAt = a.CreatedAt,
                     CurrentAvatarId = a.UserAvatars.Where(u => u.IsCurrent).Select(u => (int?)u.AvatarId).FirstOrDefault(),
                     CurrentAvatarUrl = a.UserAvatars.Where(u => u.IsCurrent).Select(u => u.Avatar.AvatarImagePath).FirstOrDefault()

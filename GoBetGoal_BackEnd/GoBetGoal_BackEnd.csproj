@@ -225,6 +225,10 @@
     <Compile Include="Migrations\202508211112155_UpdateUserAchievementModel2.Designer.cs">
       <DependentUpon>202508211112155_UpdateUserAchievementModel2.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202508220946158_SyncModelsAfterRegisterApiFix.cs" />
+    <Compile Include="Migrations\202508220946158_SyncModelsAfterRegisterApiFix.Designer.cs">
+      <DependentUpon>202508220946158_SyncModelsAfterRegisterApiFix.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\Achievement.cs" />
     <Compile Include="Models\Avatar.cs" />
@@ -434,6 +438,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202508211112155_UpdateUserAchievementModel2.resx">
       <DependentUpon>202508211112155_UpdateUserAchievementModel2.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202508220946158_SyncModelsAfterRegisterApiFix.resx">
+      <DependentUpon>202508220946158_SyncModelsAfterRegisterApiFix.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
