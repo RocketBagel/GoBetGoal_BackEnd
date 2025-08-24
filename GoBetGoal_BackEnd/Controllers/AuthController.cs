@@ -62,13 +62,16 @@ namespace GoBetGoal_BackEnd.Controllers
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password),
                 PlayerId = newPlayerId,
                 NickName = newPlayerId,
-                UserAvatars = new List<UserAvatar>() // 初始化集合
+                UserAvatars = new List<UserAvatar>(), // 初始化集合
+                UserTrialTemplates = new List<UserTrialTemplate>() // 初始化試煉範本集合
             };
 
             // 注意：這裡先不要 Add 到 _db，讓我們先建立好完整的物件圖 (Object Graph)
 
             // 找出所有免費的頭像
             var freeAvatars = _db.Avatars.Where(u => u.AvatarPrice == 0 && u.IsActive).ToList();
+            var freeTrialTemplates = _db.TrialTemplates.Where(u => u.TrialTemplatePrice == 0).ToList();
+
 
             // 為每一個免費頭像，建立關聯紀錄
             foreach (var avatar in freeAvatars)
@@ -80,6 +83,15 @@ namespace GoBetGoal_BackEnd.Controllers
                     AvatarId = avatar.Id,
                 });
 
+            }
+
+            // 為每一個免費試煉範本，建立關聯紀錄
+            foreach (var template in freeTrialTemplates)
+            {
+                newUser.UserTrialTemplates.Add(new UserTrialTemplate
+                {
+                    TrialTemplateId = template.Id,
+                });
             }
 
             _db.Users.Add(newUser);
