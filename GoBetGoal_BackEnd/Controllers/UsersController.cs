@@ -9,6 +9,7 @@ using System.Linq;
 using System.Net;
 using System.Web;
 using System.Web.Http;
+using System.Data.Entity;
 
 namespace GoBetGoal_BackEnd.Controllers
 {
@@ -260,32 +261,24 @@ namespace GoBetGoal_BackEnd.Controllers
 
 
 
+        // 這支 API 放在我們之前建立的 UsersController.cs 中
+
         [HttpGet]
         [Route("api/users/me")]
-        [JwtAuthFilter]
+        [JwtAuthFilter] // 確保此 API 需要登入
         public IHttpActionResult GetMyProfile()
         {
+            // 步驟 1：安全地取得當前登入者的 ID
             Guid currentUserId = GetCurrentUserId();
 
+            // 步驟 2：從資料庫撈出使用者核心資料
+            // 我們使用 .Include() 來確保相關的頭像資料也被一併取出
+            var user = _db.Users
+                  .Include(u => u.UserAvatars.Select(ua => ua.Avatar))
+                  .FirstOrDefault(u => u.Id == currentUserId);
 
-
-            var userProfile = _db.Users
-                .Where(a => a.Id == currentUserId)
-                .Select(a => new UserProfileDto
-                {
-                    UserId = a.Id,
-                    NickName = a.NickName,
-                    BagelCount = a.BagelCount,
-                    CheatBlanketCount = a.CheatBlanketCount,
-                    TotalTrialCount= a.Invitees.Count(x=>x.Status==Status.accepted),
-                    LikedPostsCount = _db.PostLikes.Count(x => x.Post.UserId == a.Id),
-                    FriendCount = _db.FriendsRelationships
-                .Count(f => f.Status == Status.accepted && (f.UserId == a.Id || f.InviteeId == a.Id)),
-                    CurrentAvatarUrl = a.UserAvatars.Where(u => u.IsCurrent).Select(u => u.Avatar.AvatarImagePath).FirstOrDefault()
-                }).FirstOrDefault();
-
-
-            if (userProfile == null)
+            // 處理極端情況：Token 有效，但資料庫中已找不到該使用者
+            if (user == null)
             {
                 var error = new ErrorResponseDto
                 {
@@ -295,7 +288,170 @@ namespace GoBetGoal_BackEnd.Controllers
                 return Content(HttpStatusCode.NotFound, error);
             }
 
+            // 步驟 3：執行額外的計算查詢
+            // 這樣將每個計算分開，查詢語句更簡單、更高效
+            int totalTrialCount = _db.TrialParticipants.Count(tp => tp.InviteeId == currentUserId && tp.Status == Status.accepted);
+            int likedPostsCount = _db.PostLikes.Count(like => like.Post.UserId == currentUserId);
+            int friendCount = _db.FriendsRelationships.Count(fr => (fr.UserId == currentUserId || fr.InviteeId == currentUserId) && fr.Status == Status.accepted);
+            var purchaseChallengeIds = _db.UserTrialTemplates.Where(x => x.UserId == currentUserId).Select(x => x.TrialTemplateId).ToList();
+            var purchaseAvatarIds = _db.UserAvatars.Where(x => x.UserId == currentUserId).Select(x => x.AvatarId).ToList();
+
+            // 步驟 4：在記憶體中組合最終的 DTO 物件
+            var userProfile = new UserProfileDto
+            {
+                UserId = user.Id,
+                NickName = user.NickName,
+                BagelCount = user.BagelCount,
+                CheatBlanketCount = user.CheatBlanketCount,
+                CurrentAvatarUrl = user.UserAvatars.FirstOrDefault(ua => ua.IsCurrent)?.Avatar.AvatarImagePath,
+
+                // 填入剛剛計算好的欄位
+                TotalTrialCount = totalTrialCount,
+                LikedPostsCount = likedPostsCount,
+                FriendCount = friendCount,
+                PurchaseChallengeIds = purchaseChallengeIds,
+                PurchaseAvatarIds = purchaseAvatarIds
+
+                // 注意：這裡不需要 FriendState，因為使用者看自己的個人檔案，這個欄位沒有意義
+            };
+
             return Ok(userProfile);
+        }
+
+
+        [HttpGet]
+        [Route("api/users/{userId}")] // api/users/{id}
+        [OptionalAuthorize] // 允許訪客和會員存取
+        public IHttpActionResult GetUserProfile(Guid userId)
+        {
+            // 步驟 1：溫和地取得當前檢視者的 ID (訪客則為 null)
+            Guid? viewerId = TryGetCurrentUserId();
+
+            // 步驟 2：從資料庫撈出目標使用者，並同時載入相關的頭像資料
+            // 我們使用最相容的字串路徑 .Include()
+            var targetUser = _db.Users
+                 .Include(u => u.UserAvatars.Select(ua => ua.Avatar))
+                 .FirstOrDefault(u => u.Id == userId);
+
+
+            // 步驟 3：如果找不到使用者，回傳 404 Not Found
+            if (targetUser == null)
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "USER_NOT_FOUND",
+                    Message = "指定的使用者不存在。"
+                };
+                return Content(HttpStatusCode.NotFound, error);
+            }
+
+            // 步驟 4：呼叫輔助方法來建立並填充回傳給前端的 DTO
+            var userProfileDto = CreateUserProfileDto(targetUser, viewerId);
+
+            return Ok(userProfileDto);
+        }
+
+        // 檔案路徑: Controllers/UsersController.cs
+
+        [HttpGet]
+        [Route("api/users/all")] // 路由設定為 /api/users
+        [OptionalAuthorize] // 允許訪客和會員存取
+        public IHttpActionResult GetAllUserProfiles()
+        {
+            // 步驟 1：溫和地取得當前檢視者的 ID (訪客則為 null)
+            Guid? viewerId = TryGetCurrentUserId();
+
+            // 步驟 2：從資料庫一次性撈出所有使用者，並包含他們各自的頭像資料
+            var allUsers = _db.Users
+                              .Include("UserAvatars.Avatar")
+                              .ToList();
+
+            // 步驟 3：【效能優化關鍵】
+            // 如果是會員登入，我們先跑一趟資料庫，把「我」所有的好友關係一次性撈出來放到一個 List (清單) 中。
+            List<FriendsRelationship> viewerFriendships = new List<FriendsRelationship>();
+            if (viewerId.HasValue)
+            {
+                viewerFriendships = _db.FriendsRelationships
+                                       .Where(f => f.UserId == viewerId.Value || f.InviteeId == viewerId.Value)
+                                       .ToList();
+            }
+
+            // 步驟 4：遍歷所有使用者，並呼叫共用的輔助方法來建立 DTO
+            // 我們將預先載入的好友關係清單 (viewerFriendships) 傳入輔助方法，
+            // 這樣在計算 friend_state 時，就不用每次都去查詢資料庫了。
+            var userProfiles = allUsers.Select(user => CreateUserProfileDto(user, viewerId, viewerFriendships)).ToList();
+
+            // 步驟 5：回傳組合好的使用者列表
+            return Ok(userProfiles);
+        }
+
+        /// <summary>
+        /// 輔助方法：根據目標使用者和檢視者，建立一個 UserProfileDto
+        /// </summary>
+        private UserProfileDto CreateUserProfileDto(User targetUser, Guid? viewerId, List<FriendsRelationship> preloadedFriendships = null)
+        {
+            var dto = new UserProfileDto
+            {
+                UserId = targetUser.Id,
+                NickName = targetUser.NickName,
+                BagelCount = targetUser.BagelCount,
+                CheatBlanketCount = targetUser.CheatBlanketCount,
+                CurrentAvatarUrl = targetUser.UserAvatars.FirstOrDefault(ua => ua.IsCurrent)?.Avatar.AvatarImagePath,
+
+                // 計算欄位 (分開查詢以確保效能和正確性)
+                TotalTrialCount = _db.TrialParticipants.Count(tp => tp.InviteeId == targetUser.Id && tp.Status == Status.accepted),
+                LikedPostsCount = _db.PostLikes.Count(like => like.Post.UserId == targetUser.Id),
+                FriendCount = _db.FriendsRelationships.Count(fr => (fr.UserId == targetUser.Id || fr.InviteeId == targetUser.Id) && fr.Status == Status.accepted),
+
+                // 購買項目
+                PurchaseChallengeIds = _db.UserTrialTemplates.Where(x => x.UserId == targetUser.Id).Select(x => x.TrialTemplateId).ToList(),
+                PurchaseAvatarIds = _db.UserAvatars.Where(x => x.UserId == targetUser.Id).Select(x => x.AvatarId).ToList(),
+
+                // 計算好友狀態
+                FriendState = GetFriendState(viewerId, targetUser.Id, preloadedFriendships)
+            };
+
+            return dto;
+        }
+
+        /// <summary>
+        /// 輔助方法：計算檢視者與目標使用者的好友關係
+        /// </summary>
+        private string GetFriendState(Guid? viewerId, Guid targetUserId, List<FriendsRelationship> preloadedFriendships)
+        {
+            if (!viewerId.HasValue)
+            {
+                return null; // 訪客模式，沒有好友狀態
+            }
+
+            if (viewerId.Value == targetUserId)
+            {
+                return "self"; // 是使用者本人
+            }
+
+            FriendsRelationship relation;
+
+            if (preloadedFriendships != null)
+            {
+                // (供 GetAllUserProfiles 使用) 從預先載入的列表中尋找，效能較好
+                relation = preloadedFriendships.FirstOrDefault(f =>
+                    (f.UserId == viewerId.Value && f.InviteeId == targetUserId) ||
+                    (f.UserId == targetUserId && f.InviteeId == viewerId.Value));
+            }
+            else
+            {
+                // (供 GetUserProfile 使用) 直接查詢資料庫
+                relation = _db.FriendsRelationships.FirstOrDefault(f =>
+                    (f.UserId == viewerId.Value && f.InviteeId == targetUserId) ||
+                    (f.UserId == targetUserId && f.InviteeId == viewerId.Value));
+            }
+
+            if (relation != null)
+            {
+                return relation.Status.ToString().ToLower(); // "pending", "accepted", "rejected"
+            }
+
+            return "not_friends"; // 沒有任何關係紀錄
         }
 
 
