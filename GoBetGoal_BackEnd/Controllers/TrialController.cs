@@ -8,6 +8,8 @@ using System.Web.Http;
 using System.Data.Entity;
 using GoBetGoal_BackEnd.Enums;
 using System.Net;
+using Newtonsoft.Json;
+using GoBetGoal_BackEnd.Security;
 
 namespace GoBetGoal_BackEnd.Controllers
 {
@@ -16,8 +18,8 @@ namespace GoBetGoal_BackEnd.Controllers
         private readonly Context _db = new Context();
 
         [HttpGet]
-        [Route("api/trial/details/{id}")]
-        [AllowAnonymous] // *** 標記為公開，允許訪客存取 ***
+        [Route("api/trial/details/{trialId}")]
+        [OptionalAuthorize] // *** 標記為公開，允許訪客存取 ***
         public IHttpActionResult GetTrialDetails(int id)
         {
             // 1) 嘗試取得目前檢視者（登入者）的 UserId，未登入則為 null（可用於日後個人化資料）
@@ -64,18 +66,19 @@ namespace GoBetGoal_BackEnd.Controllers
             trialDetailDto.TrialStatus = trial.TrialStatus.ToString();
             trialDetailDto.Deposit = trial.TrialDeposit;
             trialDetailDto.CreatorId = trial.UserId;
+            trialDetailDto.CreatedAt = trial.CreatedAt;
 
             var trialTemplateDto = new TrialTemplateInfoDto();
             trialTemplateDto.Id = trial.TrialTemplateId;
             trialTemplateDto.TrialTitle = trial.TrialTemplate.TrialTitle;
             trialTemplateDto.TrialDescription = trial.TrialTemplate.TrialDescription;
             trialTemplateDto.TrialFrequency = trial.TrialTemplate.TrialFrequency;
-            trialTemplateDto.TrialCategory = trial.TrialTemplate.TrialCategory;
-            trialTemplateDto.TrialSuitFor = trial.TrialTemplate.TrialSuitFor;
-            trialTemplateDto.TrialNoSuitFor = trial.TrialTemplate.TrialNoSuitFor;
-            trialTemplateDto.TrialRule = trial.TrialTemplate.TrialRule;
-            trialTemplateDto.TrialCaution = trial.TrialTemplate.TrialCaution;
-            trialTemplateDto.TrialEffect = trial.TrialTemplate.TrialEffect;
+            trialTemplateDto.TrialCategory = JsonConvert.DeserializeObject<List<string>>(trial.TrialTemplate.TrialCategory ?? "[]");
+            trialTemplateDto.TrialSuitFor = JsonConvert.DeserializeObject<List<string>>(trial.TrialTemplate.TrialSuitFor ?? "[]");
+            trialTemplateDto.TrialNoSuitFor = JsonConvert.DeserializeObject<List<string>>(trial.TrialTemplate.TrialNoSuitFor ?? "[]");
+            trialTemplateDto.TrialRule = JsonConvert.DeserializeObject<List<string>>(trial.TrialTemplate.TrialRule ?? "[]");
+            trialTemplateDto.TrialCaution = JsonConvert.DeserializeObject<List<string>>(trial.TrialTemplate.TrialCaution ?? "[]");
+            trialTemplateDto.TrialEffect = JsonConvert.DeserializeObject<List<string>>(trial.TrialTemplate.TrialEffect ?? "[]");
             trialTemplateDto.StageCount = trial.TrialTemplate.StageCount;
             trialTemplateDto.MaxUser = trial.TrialTemplate.MaxUser;
             trialTemplateDto.IsAi = trial.TrialTemplate.IsAi;
@@ -83,7 +86,26 @@ namespace GoBetGoal_BackEnd.Controllers
             trialTemplateDto.CardImagePath = trial.TrialTemplate.CardImagePath;
             trialTemplateDto.CardColor = trial.TrialTemplate.CardColor;
 
+            var trialStageDto = new List<TrialStageDto>();
+
+            foreach (var stage in stages)
+            {
+                var newDto = new TrialStageDto();
+
+                newDto.Id = stage.Id;
+                newDto.StageIndex = stage.StageIndex;
+                newDto.Description = JsonConvert.DeserializeObject<List<string>>(stage.StageDescription ?? "[]");
+                newDto.SampleImage = JsonConvert.DeserializeObject<List<string>>(stage.StageSampleImagePath ?? "[]");
+
+                trialStageDto.Add(newDto);
+            }
+
+            trialTemplateDto.ChallengeStages = trialStageDto;
+
+
             trialDetailDto.TrialTemplateInfo = trialTemplateDto;
+
+
 
             // 6. 組 Participants DTO
             var trialParticipantDtos = new List<TrialParticipantDto>();
@@ -92,11 +114,38 @@ namespace GoBetGoal_BackEnd.Controllers
             {
                 var user = participant.Invitee;
 
+                // 1. 先計算出 friendState 的值
+                string calculatedFriendState = null; // 預設為 null (訪客)
+
+                if (viewerId.HasValue) // 先判斷是否有登入的檢視者
+                {
+                    if (viewerId.Value == user.Id) // 再判斷是不是在看自己
+                    {
+                        calculatedFriendState = "self";
+                    }
+                    else
+                    {
+                        // 是登入者，且在看別人，才去查好友關係
+                        var relation = _db.FriendsRelationships.FirstOrDefault(
+                            f => (f.UserId == viewerId.Value && f.InviteeId == user.Id) || (f.UserId == user.Id && f.InviteeId == viewerId.Value)
+                        );
+
+                        if (relation != null)
+                        {
+                            // 如果有關係紀錄，就用資料庫的狀態
+                            calculatedFriendState = relation.Status.ToString().ToLower(); // 例如 "accepted", "pending"
+                        }
+                        else
+                        {
+                            // 如果沒有任何關係紀錄，狀態為 "not_friends"
+                            calculatedFriendState = "not_friends";
+                        }
+                    }
+                }
+
                 var userProfileDto = new UserProfileDto();
 
                 userProfileDto.UserId = user.Id;
-                userProfileDto.Email = user.Email;
-                userProfileDto.PlayerId = user.PlayerId;
                 userProfileDto.NickName = user.NickName;
                 userProfileDto.BagelCount = user.BagelCount;
                 userProfileDto.CheatBlanketCount = user.CheatBlanketCount;
@@ -107,9 +156,11 @@ namespace GoBetGoal_BackEnd.Controllers
                 userProfileDto.FriendCount = _db.FriendsRelationships
         .Count(fr => (fr.UserId == user.Id || fr.InviteeId == user.Id)
                   && fr.Status == Status.accepted);
-                userProfileDto.CreatedAt = user.CreatedAt;
-                userProfileDto.CurrentAvatarId = user.UserAvatars.Where(u => u.IsCurrent).Select(u => u.AvatarId).FirstOrDefault();
+                userProfileDto.PurchaseChallengeIds = _db.UserTrialTemplates.Where(x => x.UserId == user.Id).Select(x => x.TrialTemplateId).ToList();
+                userProfileDto.PurchaseAvatarIds = _db.UserAvatars.Where(x => x.UserId == user.Id).Select(x => x.AvatarId).ToList();
+
                 userProfileDto.CurrentAvatarUrl = user.UserAvatars.Where(u => u.IsCurrent).Select(u => u.Avatar.AvatarImagePath).FirstOrDefault();
+                userProfileDto.FriendState = calculatedFriendState;
 
 
 
@@ -138,30 +189,25 @@ namespace GoBetGoal_BackEnd.Controllers
                     var userStage = _db.UserStages.FirstOrDefault(us => us.UserId == user.Id && us.StageId == stage.Id);
 
                     var trialStageProgressDto = new TrialStageProgressDto();
-                    trialStageProgressDto.StageId=stage.Id;
+
+                    trialStageProgressDto.StageId = stage.Id;
                     trialStageProgressDto.StageIndex = stage.StageIndex;
-                    trialStageProgressDto.StageDescription = stage.StageDescription;
-                    trialStageProgressDto.StageSampleImagePath = stage.StageSampleImagePath;
+                    trialStageProgressDto.StageDescription = JsonConvert.DeserializeObject<List<string>>(stage.StageDescription ?? "[]"); ;
+                    trialStageProgressDto.StageSampleImagePath = JsonConvert.DeserializeObject<List<string>>(stage.StageSampleImagePath ?? "[]");
 
                     trialStageProgressDto.StartTime = userStage?.StartTime;
                     trialStageProgressDto.EndTime = userStage?.EndTime;
                     trialStageProgressDto.Status = userStage?.Status.ToString();
-                    trialStageProgressDto.UploadImagePath = userStage?.UploadImagePath;
+                    trialStageProgressDto.UploadImagePaths = !string.IsNullOrEmpty(userStage?.UploadImagePath)
+            ? JsonConvert.DeserializeObject<List<string>>(userStage.UploadImagePath)
+            : new List<string>(); // 如果是 null 或空字串，就給一個空的 List
+
                     trialStageProgressDto.UploadAt = userStage != null ? userStage.ImageUploadAt : null;
                     trialStageProgressDto.ChanceRemain = userStage != null ? (int?)userStage.ChanceRemain : null;
 
                     trialStageProgressDtoList.Add(trialStageProgressDto);
 
                 }
-
-                string friendState = null;
-                if (viewerId.HasValue)
-                {
-                    var relation = _db.FriendsRelationships.FirstOrDefault(f => (f.UserId == viewerId.Value && f.InviteeId == user.Id) || (f.UserId == user.Id && f.InviteeId == viewerId.Value));
-
-                    friendState = relation != null ? relation.Status.ToString() : null;
-                }
-
 
 
                 var trialParticipantDto = new TrialParticipantDto();
@@ -171,7 +217,6 @@ namespace GoBetGoal_BackEnd.Controllers
                 trialParticipantDto.CheatBlanketCount = cheatBlanketCount;
                 trialParticipantDto.FailCount = failCount;
                 trialParticipantDto.Stages = trialStageProgressDtoList;
-                trialParticipantDto.FriendState = friendState;
 
                 trialParticipantDtos.Add(trialParticipantDto);
 
@@ -200,11 +245,6 @@ namespace GoBetGoal_BackEnd.Controllers
             var trialLikeDtos = trialLikes.Select(x => new TrialLikeDto
             {
                 UserId = x.UserId,
-                Email = x.User.Email,
-                PlayerId = x.User.PlayerId,
-                NickName = x.User.NickName,
-                BagelCount = x.User.BagelCount,
-                CheatBlanketCount = x.User.CheatBlanketCount,
 
                 // 取 IsCurrent = true 的頭像，如果沒有就 null
                 CurrentAvatarUrl = x.User.UserAvatars
@@ -221,6 +261,7 @@ namespace GoBetGoal_BackEnd.Controllers
 
         [HttpPost]
         [Route("api/trial/{trialId}/stage/{stageId}/use-cheat-blanket")]
+        [JwtAuthFilter]
         public IHttpActionResult UseCheatBlanket(int trialId, int stageId)
         {
             Guid currentUserId = GetCurrentUserId();

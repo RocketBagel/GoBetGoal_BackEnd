@@ -1,10 +1,8 @@
 ﻿using GoBetGoal_BackEnd.Models.DTOs;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Web;
 using System.Web.Http;
 
 namespace GoBetGoal_BackEnd.Controllers
@@ -13,60 +11,70 @@ namespace GoBetGoal_BackEnd.Controllers
     public abstract class BaseApiController : ApiController
     {
         /// <summary>
-        /// 從 JWT Payload 中取得當前登入者的 User ID。
-        /// 如果取得失敗，會直接拋出一個 401 Unauthorized 錯誤。
+        /// 【核心邏輯】從請求屬性中解析 User ID，這個方法本身不拋出任何錯誤。
+        /// 這是內部使用的方法。
         /// </summary>
-        /// <returns>當前使用者的 Guid</returns>
-        protected Guid GetCurrentUserId()
+        /// <returns>成功則回傳 Guid，失敗或找不到則回傳 null。</returns>
+        private Guid? GetUserIdFromRequest()
         {
-            // 將我們之前寫的、繁瑣但安全的邏輯，全部搬到這裡
+            // 檢查 "jwtPayload" 是否存在於請求的屬性中
             if (Request.Properties.TryGetValue("jwtPayload", out object payloadObject))
             {
-                var payload = payloadObject as Dictionary<string, object>;
-                if (payload != null && payload.ContainsKey("Id"))
+                // 確認 payload 是我們預期的字典格式，且包含 "Id" 這個 key
+                if (payloadObject is Dictionary<string, object> payload && payload.ContainsKey("Id"))
                 {
-                    string userIdString = payload["Id"].ToString();
-                    if (Guid.TryParse(userIdString, out Guid currentUserId))
+                    // 嘗試將 Id 轉換成 Guid
+                    if (Guid.TryParse(payload["Id"].ToString(), out Guid currentUserId))
                     {
-                        // 成功取得，回傳 Guid
+                        // 一切順利，回傳解析出的 Guid
                         return currentUserId;
                     }
                 }
             }
 
-            // 1. 建立一個標準的錯誤回應 DTO
+            // 上述任何一個環節失敗，都安全地回傳 null
+            return null;
+        }
+
+        /// <summary>
+        /// 【嚴格模式】「必須」取得當前登入者的 User ID。
+        /// 這個方法供需要權限的 API (例如掛上 [Authorize] 的) 使用。
+        /// 找不到有效的 ID 時，會拋出 401 Unauthorized 錯誤。
+        /// </summary>
+        /// <returns>當前使用者的 Guid</returns>
+        protected Guid GetCurrentUserId()
+        {
+            // 呼叫核心邏輯
+            Guid? userId = GetUserIdFromRequest();
+
+            // 檢查是否有成功取得 ID
+            if (userId.HasValue)
+            {
+                // 有，就回傳
+                return userId.Value;
+            }
+
+            // 如果 userId 是 null，就建立並拋出我們自訂的 401 錯誤
             var error = new ErrorResponseDto
             {
-                ErrorCode = "TOKEN_INVALID",
+                ErrorCode = "TOKEN_MISSING_OR_INVALID_FORMAT", // 您可以自訂錯誤碼
                 Message = "連線階段無效或已過期，請重新登入。"
             };
-
-            // 2. 建立一個包含此 DTO 的 HttpResponseMessage 401
             var response = Request.CreateResponse(HttpStatusCode.Unauthorized, error);
-
-            // 3. 拋出包含此詳細回應的例外
             throw new HttpResponseException(response);
         }
 
         /// <summary>
         /// 【溫和模式】「嘗試」取得當前登入者的 User ID。
-        /// 這個方法適用於允許「訪客」和「已登入會員」同時存取的 API。
+        /// 這個方法供允許訪客的 API (例如掛上 [OptionalAuthorize] 的) 使用。
+        /// 找不到有效的 ID 時，會安全地回傳 null，不會拋出任何錯誤。
         /// </summary>
         /// <returns>如果使用者已登入且 Token 有效，則回傳使用者的 Guid；否則回傳 null。</returns>
         protected Guid? TryGetCurrentUserId()
         {
-            try
-            {
-                // 直接呼叫上面那個「嚴格模式」的方法
-                return GetCurrentUserId();
-            }
-            catch (HttpResponseException)
-            {
-                // 如果 GetCurrentUserId() 因為 Token 無效或不存在而拋出 401 例外，
-                // 我們就捕捉這個例外，並安靜地回傳 null。
-                // 這代表「好的，我知道這個使用者是訪客」。
-                return null;
-            }
+            // 直接回傳核心邏輯的結果即可。
+            // 因為 GetUserIdFromRequest() 永遠不會拋錯，所以這裡也不需要 try-catch。
+            return GetUserIdFromRequest();
         }
     }
 }

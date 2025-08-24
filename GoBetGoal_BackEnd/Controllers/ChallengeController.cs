@@ -2,6 +2,7 @@
 using GoBetGoal_BackEnd.Controllers;
 using GoBetGoal_BackEnd.Models;
 using GoBetGoal_BackEnd.Models.DTOs;
+using GoBetGoal_BackEnd.Security;
 using GoBetGoal_BackEnd.Services;
 using GoBetGoal_BackEnd.Services.Verifiers;
 using Newtonsoft.Json;
@@ -21,6 +22,7 @@ public class ChallengeController : BaseApiController
 
     [HttpPost]
     [Route("api/challenge/submit")]
+    [JwtAuthFilter]
     public async Task<IHttpActionResult> SubmitChallengeStage([FromBody] ChallengeSubmissionRequest request)
     {
         Guid currentUserId = GetCurrentUserId();
