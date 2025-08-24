@@ -1,6 +1,7 @@
 ﻿using GoBetGoal_BackEnd.Enums;
 using GoBetGoal_BackEnd.Models;
 using GoBetGoal_BackEnd.Models.DTOs;
+using GoBetGoal_BackEnd.Security;
 using Swashbuckle.Swagger.Annotations;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,7 @@ namespace GoBetGoal_BackEnd.Controllers
 
         [HttpPost]
         [Route("api/users/me/profile")]
+        [JwtAuthFilter]
         public IHttpActionResult CompleteUserProfile(RegisterStepTwoRequestDto model)
         {
             Guid currentUserId = GetCurrentUserId();
@@ -129,6 +131,7 @@ namespace GoBetGoal_BackEnd.Controllers
 
         [HttpPut]
         [Route("api/users/me/profile")]
+        [JwtAuthFilter]
         public IHttpActionResult UpdateUserProfile(UpdateProfileRequestDto model)
         {
             Guid currentUserId = GetCurrentUserId();
@@ -177,6 +180,7 @@ namespace GoBetGoal_BackEnd.Controllers
 
         [HttpPut]
         [Route("api/users/me/avatar")]
+        [JwtAuthFilter]
         public IHttpActionResult UpdateUserAvatar(UpdateAvatarRequestDto model)
         {
             Guid currentUserId = GetCurrentUserId();
@@ -258,17 +262,18 @@ namespace GoBetGoal_BackEnd.Controllers
 
         [HttpGet]
         [Route("api/users/me")]
+        [JwtAuthFilter]
         public IHttpActionResult GetMyProfile()
         {
             Guid currentUserId = GetCurrentUserId();
+
+
 
             var userProfile = _db.Users
                 .Where(a => a.Id == currentUserId)
                 .Select(a => new UserProfileDto
                 {
                     UserId = a.Id,
-                    Email = a.Email,
-                    PlayerId = a.PlayerId,
                     NickName = a.NickName,
                     BagelCount = a.BagelCount,
                     CheatBlanketCount = a.CheatBlanketCount,
@@ -276,11 +281,9 @@ namespace GoBetGoal_BackEnd.Controllers
                     LikedPostsCount = _db.PostLikes.Count(x => x.Post.UserId == a.Id),
                     FriendCount = _db.FriendsRelationships
                 .Count(f => f.Status == Status.accepted && (f.UserId == a.Id || f.InviteeId == a.Id)),
-
-                    CreatedAt = a.CreatedAt,
-                    CurrentAvatarId = a.UserAvatars.Where(u => u.IsCurrent).Select(u => (int?)u.AvatarId).FirstOrDefault(),
                     CurrentAvatarUrl = a.UserAvatars.Where(u => u.IsCurrent).Select(u => u.Avatar.AvatarImagePath).FirstOrDefault()
                 }).FirstOrDefault();
+
 
             if (userProfile == null)
             {

@@ -37,7 +37,7 @@ namespace GoBetGoal_BackEnd
             config.Filters.Add(new GlobalExceptionFilter());
             // *** 將您的 JwtAuthFilter 註冊為全局過濾器 ***
             // 從現在開始，每一支 API 預設都需要通過 JWT 驗證
-            config.Filters.Add(new JwtAuthFilter());
+            //config.Filters.Add(new JwtAuthFilter());
             config.Filters.Add(new ValidateModelAttribute()); // 註冊模型驗證篩選器
 
             // --- 4. JSON Formatter 設定 ---

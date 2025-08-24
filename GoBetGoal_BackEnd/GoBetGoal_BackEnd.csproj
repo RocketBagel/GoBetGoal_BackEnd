@@ -245,6 +245,7 @@
     <Compile Include="Models\DTOs\SuccessResponseDto.cs" />
     <Compile Include="Models\DTOs\TrialDetailDto.cs" />
     <Compile Include="Models\DTOs\TrialLikeDto.cs" />
+    <Compile Include="Models\DTOs\TrialStageDto.cs" />
     <Compile Include="Models\DTOs\TrialTemplateInfoDto.cs" />
     <Compile Include="Models\DTOs\TrialParticipantDto.cs" />
     <Compile Include="Models\DTOs\TrialStageProgressDto.cs" />
@@ -270,6 +271,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Security\JwtAuthFilter.cs" />
     <Compile Include="Security\JwtAuthUtility.cs" />
+    <Compile Include="Security\OptionalAuthorizeAttribute.cs" />
     <Compile Include="Services\ChallengeDbService.cs" />
     <Compile Include="Services\ChallengeHelper.cs" />
     <Compile Include="Services\OpenAIHttpClientService.cs" />

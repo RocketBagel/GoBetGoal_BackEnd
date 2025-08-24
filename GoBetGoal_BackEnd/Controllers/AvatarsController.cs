@@ -1,5 +1,6 @@
 ﻿using GoBetGoal_BackEnd.Models;
 using GoBetGoal_BackEnd.Models.DTOs;
+using GoBetGoal_BackEnd.Security;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +15,7 @@ namespace GoBetGoal_BackEnd.Controllers
 
         [HttpGet]
         [Route("api/avatars")]
+        [JwtAuthFilter]
         public IHttpActionResult GetAllAvatars()
         {
             Guid currentUserId = GetCurrentUserId();

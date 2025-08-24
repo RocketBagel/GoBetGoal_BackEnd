@@ -120,5 +120,23 @@ namespace GoBetGoal_BackEnd.Security
                 return null;
             }
         }
+
+        /// <summary>
+        /// 【新增至此處】驗證 token 時效
+        /// </summary>
+        /// <param name="dateTimeString">來自 token payload 的 Exp 欄位字串</param>
+        /// <returns>是否已過期</returns>
+        public bool IsTokenExpired(string dateTimeString)
+        {
+            // 使用 TryParse 更安全，避免因格式錯誤導致伺服器崩潰
+            if (DateTime.TryParse(dateTimeString, out DateTime expirationTime))
+            {
+                // 如果成功轉換，就比較時間
+                return expirationTime < DateTime.Now;
+            }
+
+            // 如果連日期格式都解析不了，直接視為無效/過期
+            return true;
+        }
     }
 }
