@@ -8,68 +8,75 @@ using System.Web.Http.Controllers;
 
 namespace GoBetGoal_BackEnd.Security
 {
-    /// <summary>
-    /// 處理 JWT 授權的核心過濾器，繼承自 AuthorizeAttribute 以融入 Web API 標準管線。
-    /// </summary>
     public class JwtAuthFilter : AuthorizeAttribute
     {
         public override void OnAuthorization(HttpActionContext actionContext)
         {
-            // 檢查是否有 [AllowAnonymous] 標籤，如果有就直接放行
-            bool isAnonymousAllowed = actionContext.ActionDescriptor.GetCustomAttributes<AllowAnonymousAttribute>().Any() ||
-                                      actionContext.ControllerContext.ControllerDescriptor.GetCustomAttributes<AllowAnonymousAttribute>().Any();
-
-            if (isAnonymousAllowed)
-            {
-                return;
-            }
+            // 檢查方法上是否有 [AllowAnonymous] 標籤
+            bool isAnonymousAllowed = actionContext.ActionDescriptor.GetCustomAttributes<AllowAnonymousAttribute>().Any();
 
             var request = actionContext.Request;
 
-            // 檢查 Token 是否存在且格式正確
-            if (request.Headers.Authorization == null || request.Headers.Authorization.Scheme != "Bearer" || string.IsNullOrEmpty(request.Headers.Authorization.Parameter))
+            // 嘗試從 Header 取得 Token
+            var token = (request.Headers.Authorization != null && request.Headers.Authorization.Scheme == "Bearer")
+                ? request.Headers.Authorization.Parameter
+                : null;
+
+            // 如果 Token 為空
+            if (string.IsNullOrEmpty(token))
             {
-                // 失敗，呼叫統一的處理方法
+                // 如果這個方法允許匿名，就直接放行
+                if (isAnonymousAllowed)
+                {
+                    return;
+                }
+                // 否則，回傳 401 錯誤
                 HandleUnauthorizedRequest(actionContext);
                 return;
             }
 
+            // 如果 Token 存在，無論如何都嘗試解析
             try
             {
                 var jwtAuthUtil = new JwtAuthUtility();
-                var payload = jwtAuthUtil.GetPayload(request.Headers.Authorization.Parameter);
+                var payload = jwtAuthUtil.GetPayload(token);
 
                 // 檢查 Token 是否解碼成功且未過期
-                if (payload == null || jwtAuthUtil.IsTokenExpired(payload["Exp"].ToString()))
+                if (payload != null && !jwtAuthUtil.IsTokenExpired(payload["Exp"].ToString()))
                 {
-                    // 失敗，呼叫統一的處理方法
-                    HandleUnauthorizedRequest(actionContext);
-                    return;
+                    // Token 有效，設定好 payload，讓 Controller 可以使用
+                    actionContext.Request.Properties["jwtPayload"] = payload;
+                    return; // 驗證成功，放行
                 }
 
-                // 驗證成功，將 payload 存入 Properties 供 Controller 使用
-                actionContext.Request.Properties["jwtPayload"] = payload;
+                // Token 無效或過期
+                // 如果這個方法允許匿名，就當作訪客放行
+                if (isAnonymousAllowed)
+                {
+                    return;
+                }
+                // 否則，回傳 401 錯誤
+                HandleUnauthorizedRequest(actionContext);
+                return;
             }
             catch (Exception)
             {
-                // 發生任何未預期的解碼錯誤，也視為授權失敗
+                // 解碼過程發生任何例外
+                // 如果這個方法允許匿名，就當作訪客放行
+                if (isAnonymousAllowed)
+                {
+                    return;
+                }
+                // 否則，回傳 401 錯誤
                 HandleUnauthorizedRequest(actionContext);
                 return;
             }
         }
 
-        /// <summary>
-        /// 處理所有授權失敗情況的統一方法。
-        /// </summary>
+        // 統一的 401 錯誤回應
         protected override void HandleUnauthorizedRequest(HttpActionContext actionContext)
         {
-            var error = new ErrorResponseDto
-            {
-                // 對外只提供一個通用的錯誤碼
-                ErrorCode = "UNAUTHORIZED",
-                // 對外只提供一個統一的、引導使用者操作的訊息
-                Message = "連線階段無效或已過期，請重新登入。"
-            };
+            var error = new ErrorResponseDto { ErrorCode = "UNAUTHORIZED", Message = "連線階段無效或已過期，請重新登入。" };
             actionContext.Response = actionContext.Request.CreateResponse(HttpStatusCode.Unauthorized, error);
         }
     }

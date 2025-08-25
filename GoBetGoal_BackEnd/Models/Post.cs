@@ -32,7 +32,7 @@ namespace GoBetGoal_BackEnd.Models
 
         [Required]
         // 建立一個名為 "IX_UserStageId" 的索引，並設定為 IsUnique = true
-        [Index("IX_UserStageId", IsUnique = true)]
+        [Index("IX_UserStageId")]
         public int UserStageId { get; set; } // 詢問: 是否一關只會上船一次
         public virtual UserStage UserStage { get; set; }
 

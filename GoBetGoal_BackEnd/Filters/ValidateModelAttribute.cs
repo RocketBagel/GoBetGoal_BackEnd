@@ -14,6 +14,15 @@ namespace GoBetGoal_BackEnd.Filters
     {
         public override void OnActionExecuting(HttpActionContext actionContext)
         {
+            // ★★★ 核心修正 ★★★
+            // 檢查請求的方法。如果是 GET 或 DELETE，我們就直接跳過所有驗證。
+            var method = actionContext.Request.Method;
+            if (method == HttpMethod.Get || method == HttpMethod.Delete)
+            {
+                base.OnActionExecuting(actionContext);
+                return;
+            }
+
             // 情況一：Body 為空或格式錯誤，導致 model 為 null
             if (actionContext.ActionArguments.Any(kv => kv.Value == null))
             {
