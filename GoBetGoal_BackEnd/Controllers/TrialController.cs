@@ -19,8 +19,8 @@ namespace GoBetGoal_BackEnd.Controllers
 
         [HttpGet]
         [Route("api/trial/details/{trialId}")]
-        [OptionalAuthorize] // *** 標記為公開，允許訪客存取 ***
-        public IHttpActionResult GetTrialDetails(int id)
+        [AllowAnonymous] // *** 標記為公開，允許訪客存取 ***
+        public IHttpActionResult GetTrialDetails(int trialId)
         {
             // 1) 嘗試取得目前檢視者（登入者）的 UserId，未登入則為 null（可用於日後個人化資料）
             Guid? viewerId = TryGetCurrentUserId();
@@ -28,7 +28,7 @@ namespace GoBetGoal_BackEnd.Controllers
             // 2. 先查詢指定的試煉
             var trial = _db.Trials
                 .Include(t => t.TrialTemplate) // 順便帶出 Template
-                .FirstOrDefault(t => t.Id == id);
+                .FirstOrDefault(t => t.Id == trialId);
 
             if (trial == null)
             {
@@ -51,7 +51,7 @@ namespace GoBetGoal_BackEnd.Controllers
             var participants = _db.TrialParticipants
                 .Include(tp => tp.Invitee.UserStages)
                 .Include(tp => tp.Invitee.UserAvatars.Select(a => a.Avatar))
-                .Where(tp => tp.TrialId == id && tp.Status == Status.accepted)
+                .Where(tp => tp.TrialId == trialId && tp.Status == Status.accepted)
                 .ToList();
 
             //var users = _db.TrialParticipants.Where(t => t.TrialId == id && t.Status == (Status)7).Include(t => t.Invitee).Include(t=>t.Invitee.UserStages.Where(y=>y.TrialId==id)).Select(t => t.Invitee).ToList();
@@ -238,7 +238,7 @@ namespace GoBetGoal_BackEnd.Controllers
 
             var trialLikes = _db.TrialLikes
     .Include(x => x.User.UserAvatars.Select(y => y.Avatar)) // 連同使用者和頭像一起抓
-    .Where(x => x.TrialId == id)  // 篩選出指定試煉的喜歡
+    .Where(x => x.TrialId == trialId)  // 篩選出指定試煉的喜歡
     .OrderBy(x => x.CreatedAt)    // 按時間排序
     .ToList();                     // 轉成 List，方便後續操作
 
@@ -261,7 +261,6 @@ namespace GoBetGoal_BackEnd.Controllers
 
         [HttpPost]
         [Route("api/trial/{trialId}/stage/{stageId}/use-cheat-blanket")]
-        [JwtAuthFilter]
         public IHttpActionResult UseCheatBlanket(int trialId, int stageId)
         {
             Guid currentUserId = GetCurrentUserId();
