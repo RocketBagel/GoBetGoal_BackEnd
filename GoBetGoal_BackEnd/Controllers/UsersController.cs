@@ -22,7 +22,6 @@ namespace GoBetGoal_BackEnd.Controllers
 
         [HttpPost]
         [Route("api/users/me/profile")]
-        [JwtAuthFilter]
         public IHttpActionResult CompleteUserProfile(RegisterStepTwoRequestDto model)
         {
             Guid currentUserId = GetCurrentUserId();
@@ -132,7 +131,6 @@ namespace GoBetGoal_BackEnd.Controllers
 
         [HttpPut]
         [Route("api/users/me/profile")]
-        [JwtAuthFilter]
         public IHttpActionResult UpdateUserProfile(UpdateProfileRequestDto model)
         {
             Guid currentUserId = GetCurrentUserId();
@@ -181,7 +179,6 @@ namespace GoBetGoal_BackEnd.Controllers
 
         [HttpPut]
         [Route("api/users/me/avatar")]
-        [JwtAuthFilter]
         public IHttpActionResult UpdateUserAvatar(UpdateAvatarRequestDto model)
         {
             Guid currentUserId = GetCurrentUserId();
@@ -265,7 +262,6 @@ namespace GoBetGoal_BackEnd.Controllers
 
         [HttpGet]
         [Route("api/users/me")]
-        [JwtAuthFilter] // 確保此 API 需要登入
         public IHttpActionResult GetMyProfile()
         {
             // 步驟 1：安全地取得當前登入者的 ID
@@ -321,7 +317,7 @@ namespace GoBetGoal_BackEnd.Controllers
 
         [HttpGet]
         [Route("api/users/{userId}")] // api/users/{id}
-        [OptionalAuthorize] // 允許訪客和會員存取
+        [AllowAnonymous] // 允許訪客和會員存取
         public IHttpActionResult GetUserProfile(Guid userId)
         {
             // 步驟 1：溫和地取得當前檢視者的 ID (訪客則為 null)
@@ -355,7 +351,7 @@ namespace GoBetGoal_BackEnd.Controllers
 
         [HttpGet]
         [Route("api/users/all")] // 路由設定為 /api/users
-        [OptionalAuthorize] // 允許訪客和會員存取
+        [AllowAnonymous] // 允許訪客和會員存取
         public IHttpActionResult GetAllUserProfiles()
         {
             // 步驟 1：溫和地取得當前檢視者的 ID (訪客則為 null)

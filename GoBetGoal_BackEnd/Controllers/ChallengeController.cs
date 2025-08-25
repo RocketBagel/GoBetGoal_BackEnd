@@ -22,7 +22,6 @@ public class ChallengeController : BaseApiController
 
     [HttpPost]
     [Route("api/challenge/submit")]
-    [JwtAuthFilter]
     public async Task<IHttpActionResult> SubmitChallengeStage([FromBody] ChallengeSubmissionRequest request)
     {
         Guid currentUserId = GetCurrentUserId();
