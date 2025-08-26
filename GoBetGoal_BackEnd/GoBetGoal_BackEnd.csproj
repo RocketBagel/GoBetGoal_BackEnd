@@ -242,6 +242,7 @@
     <Compile Include="Models\Context.cs" />
     <Compile Include="Models\DTOs\AiApiDto.cs" />
     <Compile Include="Models\DTOs\AvatarDto.cs" />
+    <Compile Include="Models\DTOs\CreateTrialRequestDto.cs" />
     <Compile Include="Models\DTOs\ErrorResponseDto.cs" />
     <Compile Include="Models\DTOs\LoginRequestDto.cs" />
     <Compile Include="Models\DTOs\PostDto.cs" />
@@ -281,6 +282,7 @@
     <Compile Include="Security\JwtAuthUtility.cs" />
     <Compile Include="Services\ChallengeDbService.cs" />
     <Compile Include="Services\ChallengeHelper.cs" />
+    <Compile Include="Services\CreateTrialsService.cs" />
     <Compile Include="Services\OpenAIHttpClientService.cs" />
     <Compile Include="Services\Verifiers\CollectiveVerifier.cs" />
     <Compile Include="Services\Verifiers\IVerifier.cs" />
