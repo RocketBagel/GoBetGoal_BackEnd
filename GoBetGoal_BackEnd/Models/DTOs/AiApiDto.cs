@@ -2,17 +2,73 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Web;
 
 namespace GoBetGoal_BackEnd.Models.DTOs
 {
+    /// <summary>
+    /// 【V2 版】為 AI 審核微服務設計的請求模型
+    /// </summary>
+    public class AiVerificationRequestV2
+    {
+        /// <summary>
+        /// 圖片 URL 陣列，會依照 StageDescriptions 的順序進行一對一審核
+        /// </summary>
+        [Required]
+        public List<string> ImageUrls { get; set; }
+
+        /// <summary>
+        /// 關卡的「審核類型」，例如 "FoodCombination", "FitnessOCR"。
+        /// 後端將依此來決定使用哪一套 AI 指令。
+        /// </summary>
+        [Required]
+        public string ChallengeType { get; set; }
+
+        /// <summary>
+        /// 針對每張圖片的「具體關卡規則」陣列。
+        /// 陣列長度應與 ImageUrls 一致，或只有一個元素（代表所有圖片共用此規則）。
+        /// </summary>
+        [Required]
+        public List<string> StageDescriptions { get; set; }
+
+        /// <summary>
+        /// 整個試煉的「通用規則」列表。
+        /// </summary>
+        [Required]
+        public List<string> TrialRules { get; set; }
+    }
+
+    /// <summary>
+    /// 【V2 版】AI 審核微服務回傳給前端的、簡潔的結果模型
+    /// </summary>
+    public class AiVerificationResponseV2
+    {
+        /// <summary>
+        /// 整個關卡（所有圖片）是否最終通過
+        /// </summary>
+        public bool OverallResult { get; set; }
+
+        /// <summary>
+        /// 對整個關卡結果的總結訊息
+        /// </summary>
+        public string OverallMessage { get; set; }
+
+        /// <summary>
+        // 針對每一張圖片的獨立、詳細的審核結果
+        /// </summary>
+        public List<ImageResult> ImageResults { get; set; } = new List<ImageResult>();
+    }
+
     public class ChallengeSubmissionRequest
     {
         public int TrialId { get; set; }
         public int StageIndex { get; set; }
         public List<string> ImageUrls { get; set; }
     }
+
+   
 
     public class ChallengeSubmissionResponse
     {
@@ -23,7 +79,7 @@ namespace GoBetGoal_BackEnd.Models.DTOs
     }
 
     // 用於 PerImage 模式的回應
-    public class PerImageResult
+    public class ImageResult
     {
         public string ImageUrl { get; set; }
         public bool IsSafe { get; set; }
