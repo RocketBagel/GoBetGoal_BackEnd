@@ -198,6 +198,7 @@
     <Compile Include="Controllers\ChallengeController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\PostsController.cs" />
+    <Compile Include="Models\DTOs\PurchaseSuccessDto.cs" />
     <Compile Include="Controllers\TrialController.cs" />
     <Compile Include="Controllers\TrialsController.cs" />
     <Compile Include="Controllers\UsersController.cs" />
