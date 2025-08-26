@@ -22,7 +22,7 @@ namespace GoBetGoal_BackEnd.Services.Verifiers
         {
             var response = new ChallengeSubmissionResponse();
             // 明確指定 ImageResults 的列表型別
-            var imageResultsList = new List<PerImageResult>();
+            var imageResultsList = new List<ImageResult>();
 
             // 從資料庫來的 JSON 字串規則，在這裡一次性反序列化
             var mealRules = JsonConvert.DeserializeObject<List<string>>(_stage.StageDescription);
@@ -70,7 +70,7 @@ namespace GoBetGoal_BackEnd.Services.Verifiers
                     isStagePassed = false;
                 }
 
-                imageResultsList.Add(new PerImageResult
+                imageResultsList.Add(new ImageResult
                 {
                     ImageUrl = imageUrl,
                     IsSafe = result.IsSafe,

@@ -32,30 +32,34 @@ You MUST ALWAYS respond ONLY with a JSON object, with no additional text or expl
         /// </summary>
         public static string BuildUserPrompt(string specificRule, List<string> generalRules, string challengeType)
         {
-           
-
             string verificationInstructions;
-            // 根據 ChallengeType 選擇不同的「驗證指令」
+
+            // 根據前端傳來的 ChallengeType，選擇最精準的 AI 思考模式
             switch (challengeType)
             {
                 case "FoodCombination":
-                    verificationInstructions = "Your method is to visually identify each required food item. Be flexible with 'OR' conditions and assume common cooking methods (like pan-fried) are acceptable unless oil is excessive. Assume an unpeeled egg is a boiled egg in a breakfast context.";
+                    verificationInstructions = "Your method is to act as a nutritionist. Visually identify each required food item from the 'Specific Rule'. Be flexible with 'OR' conditions and assume common healthy cooking methods are used. An unpeeled egg in a breakfast context is a boiled egg.";
                     break;
 
                 case "FitnessOCR":
-                    verificationInstructions = "Your method is to perform OCR on the image. Find a digital display on fitness equipment and extract the time or step count. The extracted value must be equal to or greater than the value in the rule.";
+                    verificationInstructions = "Your method is to act as a data verifier. Perform OCR on the image to find numbers on a digital display (like a treadmill or smartwatch). The extracted value (time or steps) must be equal to or greater than the value specified in the 'Specific Rule'.";
                     break;
 
                 case "NegativeList":
-                    verificationInstructions = "Your method is to scan the image to ensure NONE of the prohibited items are present. If you find any prohibited item, the check fails.";
+                    verificationInstructions = "Your method is to act as a compliance officer. Scan the image meticulously to ensure NONE of the prohibited items listed in the 'Specific Rule' are present. The presence of ANY prohibited item means the task fails.";
                     break;
 
-                case "MonoDiet": // 用於 Collective 模式
-                    verificationInstructions = "Your method is to identify all food items in this single image. The final judgment will be based on the combined items from all images.";
+                case "ExclusiveDiet":
+                    verificationInstructions = "Your method is to act as a strict diet supervisor. The user is only allowed to eat items from a specific food group mentioned in the 'Specific Rule' (e.g., only meat, only eggs). Identify all food items in the image and fail the task if ANY non-allowed food group is present.";
+                    break;
+
+                case "AbstractHonor":
+                    // 對於 AI 無法驗證的任務，我們給予一個直接通過的指令
+                    verificationInstructions = "This is an honor-system task that cannot be visually verified (like 'Healthy Diet' or 'Read a book'). Assume the user has completed it. Your task is to confirm the image is safe and then pass the compliance check.";
                     break;
 
                 default:
-                    verificationInstructions = "Your method is to analyze the image and judge its compliance against the rules below.";
+                    verificationInstructions = "Your method is to analyze the image and judge its compliance against the 'Specific Rule' below.";
                     break;
             }
 
@@ -67,17 +71,17 @@ Please perform a verification task.
 {verificationInstructions}
 
 ## General Rules to Enforce:
-- {string.Join("\n- ", generalRules)}
+- {string.Join("\n- ", generalRules ?? new List<string>())}
 
-## Specific Rules for this task/image:
-- {string.Join("\n- ", specificRule)}
+## Specific Rule for this task/image:
+- {specificRule}
 
 ## Final Judgment:
 Based on your analysis, provide the final JSON output. The JSON format MUST be:
 {{
   ""isSafe"": true or false,
   ""isCompliant"": true or false,
-  ""reason"": ""Provide a brief, helpful explanation in Traditional Chinese.""
+  ""reason"": ""Provide a brief, helpful, and encouraging explanation in Traditional Chinese.""
 }}
 - Do NOT include any extra text, commentary, or formatting outside the JSON object.
 - Make sure 'isSafe' and 'isCompliant' are **strict booleans**, not strings.
