@@ -508,6 +508,94 @@ namespace GoBetGoal_BackEnd.Controllers
             return Ok(new SuccessResponseDto { Message = "已成功分享至大平台！" });
         }
 
+        /// <summary>
+        /// 參加者在試煉開始前退出
+        /// </summary>
+        /// <param name="id">要退出的試煉 ID</param>
+        [HttpDelete]
+        [Route("api/trial/{trialId}/participation")]
+        public IHttpActionResult LeaveTrial(int trialId)
+        {
+            // 1. 取得當前使用者 ID (此 API 需要驗證)
+            Guid currentUserId = GetCurrentUserId();
+
+            // 2. 找出使用者在此試煉中的「參與紀錄」
+            var participation = _db.TrialParticipants.FirstOrDefault(p => p.TrialId == trialId && p.InviteeId == currentUserId);
+
+            // --- 3. 業務邏輯驗證 (Guard Clauses) ---
+
+            // a. 檢查參與紀錄是否存在
+            if (participation == null)
+            {
+                return Content(HttpStatusCode.NotFound, new ErrorResponseDto { ErrorCode = "PARTICIPATION_NOT_FOUND", Message = "您並未參加此試煉。" });
+            }
+
+            // b. 檢查試煉是否已開始 (最關鍵的業務規則)
+            //    我們需要從 participation 關聯的 Trial 物件取得開始時間
+            var trial = _db.Trials.Find(trialId);
+            if (trial == null) { return Content(HttpStatusCode.NotFound, new ErrorResponseDto { ErrorCode = "TRIAL_NOT_FOUND", Message = "指定的試煉不存在。" }); } // 理論上不會發生，但做個保險
+
+            if (DateTime.Now >= trial.StartTime)
+            {
+                return Content(HttpStatusCode.Forbidden, new ErrorResponseDto { ErrorCode = "TRIAL_ALREADY_STARTED", Message = "試煉已開始，無法退出。" });
+            }
+
+            // c. 找出使用者物件，準備退還押金
+            var user = _db.Users.Find(currentUserId);
+            if (user == null) { return Content(HttpStatusCode.NotFound, new ErrorResponseDto { ErrorCode = "USER_NOT_FOUND", Message = "指定的使用者不存在。" }); }
+
+
+            // --- 4. 執行核心操作 (Transaction) ---
+
+            // a. 記錄交易前的餘額
+            int balanceBefore = user.BagelCount;
+
+            // b. 將試煉押金退還給使用者
+            user.BagelCount += trial.TrialDeposit;
+
+            // c. 記錄交易後的餘額
+            int balanceAfter = user.BagelCount;
+
+            // d. 建立一筆 BagelTransaction 交易紀錄來「記帳」
+            var transaction = new BagelTransaction
+            {
+                UserId = currentUserId,
+                TransactionType = TransactionType.試煉收付, 
+                ProductType = ProductType.Bagel,   // 商品類型：試煉押金
+                ReferenceId = trial.Id,                   // 關聯的試煉 ID
+                ItemName = "退出試煉退還押金",
+                Price = trial.TrialDeposit,               // 退款單價
+                Quantity = 1,
+                Amount = trial.TrialDeposit,              // 交易金額 (收入為正數)
+                BalanceBefore = balanceBefore,
+                BalanceAfter = balanceAfter
+                //CreatedAt = DateTime.UtcNow
+            };
+            _db.BagelTransactions.Add(transaction);
+
+            // e. 從 `TrialParticipants` 表中，移除這筆參與紀錄
+            _db.TrialParticipants.Remove(participation);
+
+            try
+            {
+                // f. 將所有變更 (更新 User、新增 BagelTransaction、刪除 TrialParticipant) 一次性存入資料庫
+                _db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+
+            // 5. 回傳成功的結果
+            var successResponse = new LeaveTrialResponseDto
+            {
+                Message = "成功退出試煉，貝果已退還。",
+                NewBagelCount = user.BagelCount // 回傳更新後的餘額
+            };
+
+            return Ok(successResponse);
+        }
+
         // 釋放資料庫連線資源
         protected override void Dispose(bool disposing)
         {

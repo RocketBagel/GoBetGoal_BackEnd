@@ -206,6 +206,7 @@
     <Compile Include="Migrations\202508270426355_RemoveUserStageNavigationFromPost.Designer.cs">
       <DependentUpon>202508270426355_RemoveUserStageNavigationFromPost.cs</DependentUpon>
     </Compile>
+    <Compile Include="Models\DTOs\LeaveTrialResponseDto.cs" />
     <Compile Include="Models\DTOs\PurchaseSuccessDto.cs" />
     <Compile Include="Controllers\TrialController.cs" />
     <Compile Include="Controllers\TrialsController.cs" />
