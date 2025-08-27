@@ -140,11 +140,11 @@ namespace GoBetGoal_BackEnd.Models
                 .HasForeignKey(ua => ua.TrialId)
                 .WillCascadeOnDelete(false);
 
-            // --- UserStage 相關關聯 ---
-            // UserStage (Principal, 1) -> Post (Dependent, 0..1)
-            modelBuilder.Entity<Post>()
-                .HasRequired(post => post.UserStage) // 一個 Post 必須有一個 UserStage
-                .WithOptional(userStage => userStage.Post); // 一個 UserStage 可以沒有 Post (也可以有一個)
+            //// --- UserStage 相關關聯 ---
+            //// UserStage (Principal, 1) -> Post (Dependent, 0..1)
+            //modelBuilder.Entity<Post>()
+            //    .HasRequired(post => post.UserStage) // 一個 Post 必須有一個 UserStage
+            //    .WithOptional(userStage => userStage.Post); // 一個 UserStage 可以沒有 Post (也可以有一個)
 
             // --- Post 相關關聯 ---
             // Post (一) -> PostLike (多)
