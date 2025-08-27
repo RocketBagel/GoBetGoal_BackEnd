@@ -418,6 +418,96 @@ namespace GoBetGoal_BackEnd.Controllers
             return Ok(successResponse);
         }
 
+        /// <summary>
+        /// 為指定的試煉新增一筆社群分享貼文
+        /// </summary>
+        /// <param name="id">要分享的試煉 ID</param>
+        /// <param name="model">包含心得和可選封面圖的資料</param>
+        [HttpPost]
+        [Route("api/trial/{trialId}/share")]
+        public IHttpActionResult ShareTrialPost(int trialId, ShareTrialPostRequestDto model)
+        {
+            //// 1. 驗證 DTO 格式
+            //if (!ModelState.IsValid)
+            //{
+            //    return BadRequest(ModelState);
+            //}
+
+            Guid currentUserId = GetCurrentUserId();
+
+            // --- 2. 業務邏輯驗證 ---
+
+            // a. 檢查使用者是否為此試煉的參與者
+            bool isParticipant = _db.TrialParticipants.Any(p => p.TrialId == trialId && p.InviteeId == currentUserId && p.Status == Status.accepted);
+            if (!isParticipant)
+            {
+                var error = new ErrorResponseDto { ErrorCode = "NOT_A_PARTICIPANT", Message = "您並非此試煉的參與者，無法分享心得。" };
+                return Content(HttpStatusCode.Forbidden, error);
+            }
+
+            // b. (可選) 檢查使用者是否已為此試煉分享過 (避免重複發文)
+            //bool alreadyPosted = _db.Posts.Any(p => p.TrialId == id && p.UserId == currentUserId);
+            //if (alreadyPosted)
+            //{
+            //    var error = new ErrorResponseDto { ErrorCode = "POST_ALREADY_EXISTS", Message = "您已經為此試煉分享過心得了。" };
+            //    return Content(HttpStatusCode.Conflict, error);
+            //}
+
+            // --- 3. 核心操作：聚合所有圖片 ---
+
+            // a. 建立一個列表來存放所有圖片 URL
+            var allImageUrls = new List<string>();
+
+            // b. 如果有提供封面圖，將它放在第一個
+            if (!string.IsNullOrEmpty(model.CoverImageUrl))
+            {
+                allImageUrls.Add(model.CoverImageUrl);
+            }
+
+            // c. 找出使用者在此試煉所有關卡的進度紀錄
+            var userStagesInTrial = _db.UserStages
+                .Where(us => us.TrialId == trialId && us.UserId == currentUserId && us.UploadImagePath != null)
+                .OrderBy(us => us.Stage.StageIndex) // 確保關卡圖片順序
+                .ToList();
+
+            // d. 遍歷所有關卡紀錄，將其中的圖片加入列表
+            foreach (var userStage in userStagesInTrial)
+            {
+                // 將儲存的 JSON 字串反序列化成 List<string>
+                var stageImages = JsonConvert.DeserializeObject<List<string>>(userStage.UploadImagePath);
+                if (stageImages != null && stageImages.Any())
+                {
+                    // 將這個關卡的所有圖片，全部加入到我們的總列表中
+                    allImageUrls.AddRange(stageImages);
+                }
+            }
+
+            // --- 4. 建立新的 Post 物件 ---
+            var newPost = new Post
+            {
+                Content = model.Content,
+                UserId = currentUserId,
+                TrialId = trialId,
+                // 將聚合好的圖片列表，序列化成 JSON 字串存入資料庫
+                ImageUrl = JsonConvert.SerializeObject(allImageUrls),
+                //CreatedAt = DateTime.UtcNow
+                // UserStageId 可以是 null，因為這篇貼文是關於整個試煉的總結
+            };
+
+            _db.Posts.Add(newPost);
+
+            try
+            {
+                _db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+
+            return Ok(new SuccessResponseDto { Message = "已成功分享至大平台！" });
+        }
+
         // 釋放資料庫連線資源
         protected override void Dispose(bool disposing)
         {
