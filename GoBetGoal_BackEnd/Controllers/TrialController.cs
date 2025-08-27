@@ -353,6 +353,70 @@ namespace GoBetGoal_BackEnd.Controllers
             return Ok(successResponse);
         }
 
+        /// <summary>
+        /// 加入一個試煉的圍觀列表 (喜歡這個試煉)
+        /// </summary>
+        /// <param name="id">要加入圍觀的試煉 ID</param>
+        [HttpPost]
+        [Route("api/trial/{trialId}/like")]
+        public IHttpActionResult LikeTrial(int trialId)
+        {
+            // 1. 取得當前使用者 ID (此 API 需要驗證)
+            Guid currentUserId = GetCurrentUserId();
+
+            // --- 2. 業務邏輯驗證 ---
+
+            // a. 檢查試煉是否存在
+            var trial = _db.Trials.Find(trialId);
+            if (trial == null)
+            {
+                return Content(HttpStatusCode.NotFound, new ErrorResponseDto { ErrorCode = "TRIAL_NOT_FOUND", Message = "指定的試煉不存在。" });
+            }
+
+            // b. 檢查使用者是否已經圍觀過此試煉，避免重複加入
+            bool alreadyLiked = _db.TrialLikes.Any(tl => tl.TrialId == trialId && tl.UserId == currentUserId);
+            if (alreadyLiked)
+            {
+                // 使用 409 Conflict 表示這個操作與現有狀態衝突
+                return Content(HttpStatusCode.Conflict, new ErrorResponseDto { ErrorCode = "ALREADY_LIKED", Message = "您已經在圍觀列表中了。" });
+            }
+
+            // c. (可選但建議) 檢查使用者是否為參與者，參與者可能不能同時是圍觀者
+            bool isParticipant = _db.TrialParticipants.Any(p => p.TrialId == trialId && p.InviteeId == currentUserId && p.Status == Status.accepted);
+            if (isParticipant)
+            {
+                return Content(HttpStatusCode.BadRequest, new ErrorResponseDto { ErrorCode = "PARTICIPANT_CANNOT_LIKE", Message = "您已是此試煉的參與者，無法加入圍觀。" });
+            }
+
+            // --- 3. 執行核心操作 ---
+
+            var newLike = new TrialLike
+            {
+                UserId = currentUserId,
+                TrialId = trialId
+            };
+            _db.TrialLikes.Add(newLike);
+
+            try
+            {
+                _db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+
+            // 4. 準備成功的回應
+            //    在儲存後，重新計算一次總數，確保資料最新
+            //var newLikeCount = _db.TrialLikes.Count(tl => tl.TrialId == trialId);
+
+            var successResponse = new SuccessResponseDto
+            {
+                Message = "成功加入圍觀！",
+            };
+
+            return Ok(successResponse);
+        }
 
         // 釋放資料庫連線資源
         protected override void Dispose(bool disposing)
