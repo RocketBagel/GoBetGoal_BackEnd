@@ -196,7 +196,9 @@
     <Compile Include="Controllers\BaseApiController.cs" />
     <Compile Include="Controllers\ChallengeController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
+    <Compile Include="Controllers\PaymentSupaController.cs" />
     <Compile Include="Controllers\PostsController.cs" />
+    <Compile Include="Controllers\TransactionsController.cs" />
     <Compile Include="Controllers\TrialController.cs" />
     <Compile Include="Controllers\TrialsController.cs" />
     <Compile Include="Controllers\UsersController.cs" />
@@ -246,6 +248,10 @@
     <Compile Include="Models\DTOs\LoginRequestDto.cs" />
     <Compile Include="Models\DTOs\PostDto.cs" />
     <Compile Include="Models\DTOs\PostLikeDto.cs" />
+    <Compile Include="Models\DTOs\PaymentOrderFormDto.cs" />
+    <Compile Include="Models\DTOs\PaymentRequestDto.cs" />
+    <Compile Include="Models\DTOs\PaymentResponseDto.cs" />
+    <Compile Include="Models\DTOs\PurchaseRequestDto.cs" />
     <Compile Include="Models\DTOs\RegisterStepOneRequestDto.cs" />
     <Compile Include="Models\DTOs\RegisterStepTwoRequestDto.cs" />
     <Compile Include="Models\DTOs\AuthSuccessResponseDto.cs" />
@@ -333,6 +339,7 @@
     <Content Include="Areas\HelpPage\Views\Help\DisplayTemplates\ApiGroup.cshtml" />
     <Content Include="Areas\HelpPage\Views\Help\Api.cshtml" />
     <Content Include="Connect.config" />
+    <Content Include="NewebPayKeys.config" />
     <None Include="Scripts\jquery-3.7.0.intellisense.js" />
     <Content Include="Scripts\jquery-3.7.0.js" />
     <Content Include="Scripts\jquery-3.7.0.min.js" />
