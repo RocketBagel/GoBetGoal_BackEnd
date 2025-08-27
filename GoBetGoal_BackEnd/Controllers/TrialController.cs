@@ -353,6 +353,248 @@ namespace GoBetGoal_BackEnd.Controllers
             return Ok(successResponse);
         }
 
+        /// <summary>
+        /// 加入一個試煉的圍觀列表 (喜歡這個試煉)
+        /// </summary>
+        /// <param name="id">要加入圍觀的試煉 ID</param>
+        [HttpPost]
+        [Route("api/trial/{trialId}/like")]
+        public IHttpActionResult LikeTrial(int trialId)
+        {
+            // 1. 取得當前使用者 ID (此 API 需要驗證)
+            Guid currentUserId = GetCurrentUserId();
+
+            // --- 2. 業務邏輯驗證 ---
+
+            // a. 檢查試煉是否存在
+            var trial = _db.Trials.Find(trialId);
+            if (trial == null)
+            {
+                return Content(HttpStatusCode.NotFound, new ErrorResponseDto { ErrorCode = "TRIAL_NOT_FOUND", Message = "指定的試煉不存在。" });
+            }
+
+            // b. 檢查使用者是否已經圍觀過此試煉，避免重複加入
+            bool alreadyLiked = _db.TrialLikes.Any(tl => tl.TrialId == trialId && tl.UserId == currentUserId);
+            if (alreadyLiked)
+            {
+                // 使用 409 Conflict 表示這個操作與現有狀態衝突
+                return Content(HttpStatusCode.Conflict, new ErrorResponseDto { ErrorCode = "ALREADY_LIKED", Message = "您已經在圍觀列表中了。" });
+            }
+
+            // c. (可選但建議) 檢查使用者是否為參與者，參與者可能不能同時是圍觀者
+            bool isParticipant = _db.TrialParticipants.Any(p => p.TrialId == trialId && p.InviteeId == currentUserId && p.Status == Status.accepted);
+            if (isParticipant)
+            {
+                return Content(HttpStatusCode.BadRequest, new ErrorResponseDto { ErrorCode = "PARTICIPANT_CANNOT_LIKE", Message = "您已是此試煉的參與者，無法加入圍觀。" });
+            }
+
+            // --- 3. 執行核心操作 ---
+
+            var newLike = new TrialLike
+            {
+                UserId = currentUserId,
+                TrialId = trialId
+            };
+            _db.TrialLikes.Add(newLike);
+
+            try
+            {
+                _db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+
+            // 4. 準備成功的回應
+            //    在儲存後，重新計算一次總數，確保資料最新
+            //var newLikeCount = _db.TrialLikes.Count(tl => tl.TrialId == trialId);
+
+            var successResponse = new SuccessResponseDto
+            {
+                Message = "成功加入圍觀！",
+            };
+
+            return Ok(successResponse);
+        }
+
+        /// <summary>
+        /// 為指定的試煉新增一筆社群分享貼文
+        /// </summary>
+        /// <param name="id">要分享的試煉 ID</param>
+        /// <param name="model">包含心得和可選封面圖的資料</param>
+        [HttpPost]
+        [Route("api/trial/{trialId}/share")]
+        public IHttpActionResult ShareTrialPost(int trialId, ShareTrialPostRequestDto model)
+        {
+            //// 1. 驗證 DTO 格式
+            //if (!ModelState.IsValid)
+            //{
+            //    return BadRequest(ModelState);
+            //}
+
+            Guid currentUserId = GetCurrentUserId();
+
+            // --- 2. 業務邏輯驗證 ---
+
+            // a. 檢查使用者是否為此試煉的參與者
+            bool isParticipant = _db.TrialParticipants.Any(p => p.TrialId == trialId && p.InviteeId == currentUserId && p.Status == Status.accepted);
+            if (!isParticipant)
+            {
+                var error = new ErrorResponseDto { ErrorCode = "NOT_A_PARTICIPANT", Message = "您並非此試煉的參與者，無法分享心得。" };
+                return Content(HttpStatusCode.Forbidden, error);
+            }
+
+            // b. (可選) 檢查使用者是否已為此試煉分享過 (避免重複發文)
+            //bool alreadyPosted = _db.Posts.Any(p => p.TrialId == id && p.UserId == currentUserId);
+            //if (alreadyPosted)
+            //{
+            //    var error = new ErrorResponseDto { ErrorCode = "POST_ALREADY_EXISTS", Message = "您已經為此試煉分享過心得了。" };
+            //    return Content(HttpStatusCode.Conflict, error);
+            //}
+
+            // --- 3. 核心操作：聚合所有圖片 ---
+
+            // a. 建立一個列表來存放所有圖片 URL
+            var allImageUrls = new List<string>();
+
+            // b. 如果有提供封面圖，將它放在第一個
+            if (!string.IsNullOrEmpty(model.CoverImageUrl))
+            {
+                allImageUrls.Add(model.CoverImageUrl);
+            }
+
+            // c. 找出使用者在此試煉所有關卡的進度紀錄
+            var userStagesInTrial = _db.UserStages
+                .Where(us => us.TrialId == trialId && us.UserId == currentUserId && us.UploadImagePath != null)
+                .OrderBy(us => us.Stage.StageIndex) // 確保關卡圖片順序
+                .ToList();
+
+            // d. 遍歷所有關卡紀錄，將其中的圖片加入列表
+            foreach (var userStage in userStagesInTrial)
+            {
+                // 將儲存的 JSON 字串反序列化成 List<string>
+                var stageImages = JsonConvert.DeserializeObject<List<string>>(userStage.UploadImagePath);
+                if (stageImages != null && stageImages.Any())
+                {
+                    // 將這個關卡的所有圖片，全部加入到我們的總列表中
+                    allImageUrls.AddRange(stageImages);
+                }
+            }
+
+            // --- 4. 建立新的 Post 物件 ---
+            var newPost = new Post
+            {
+                Content = model.Content,
+                UserId = currentUserId,
+                TrialId = trialId,
+                // 將聚合好的圖片列表，序列化成 JSON 字串存入資料庫
+                ImageUrl = JsonConvert.SerializeObject(allImageUrls),
+                //CreatedAt = DateTime.UtcNow
+                // UserStageId 可以是 null，因為這篇貼文是關於整個試煉的總結
+            };
+
+            _db.Posts.Add(newPost);
+
+            try
+            {
+                _db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+
+            return Ok(new SuccessResponseDto { Message = "已成功分享至大平台！" });
+        }
+
+        /// <summary>
+        /// 參加者在試煉開始前退出
+        /// </summary>
+        /// <param name="id">要退出的試煉 ID</param>
+        [HttpDelete]
+        [Route("api/trial/{trialId}/participation")]
+        public IHttpActionResult LeaveTrial(int trialId)
+        {
+            // 1. 取得當前使用者 ID (此 API 需要驗證)
+            Guid currentUserId = GetCurrentUserId();
+
+            // 2. 找出使用者在此試煉中的「參與紀錄」
+            var participation = _db.TrialParticipants.FirstOrDefault(p => p.TrialId == trialId && p.InviteeId == currentUserId);
+
+            // --- 3. 業務邏輯驗證 (Guard Clauses) ---
+
+            // a. 檢查參與紀錄是否存在
+            if (participation == null)
+            {
+                return Content(HttpStatusCode.NotFound, new ErrorResponseDto { ErrorCode = "PARTICIPATION_NOT_FOUND", Message = "您並未參加此試煉。" });
+            }
+
+            // b. 檢查試煉是否已開始 (最關鍵的業務規則)
+            //    我們需要從 participation 關聯的 Trial 物件取得開始時間
+            var trial = _db.Trials.Find(trialId);
+            if (trial == null) { return Content(HttpStatusCode.NotFound, new ErrorResponseDto { ErrorCode = "TRIAL_NOT_FOUND", Message = "指定的試煉不存在。" }); } // 理論上不會發生，但做個保險
+
+            if (DateTime.Now >= trial.StartTime)
+            {
+                return Content(HttpStatusCode.Forbidden, new ErrorResponseDto { ErrorCode = "TRIAL_ALREADY_STARTED", Message = "試煉已開始，無法退出。" });
+            }
+
+            // c. 找出使用者物件，準備退還押金
+            var user = _db.Users.Find(currentUserId);
+            if (user == null) { return Content(HttpStatusCode.NotFound, new ErrorResponseDto { ErrorCode = "USER_NOT_FOUND", Message = "指定的使用者不存在。" }); }
+
+
+            // --- 4. 執行核心操作 (Transaction) ---
+
+            // a. 記錄交易前的餘額
+            int balanceBefore = user.BagelCount;
+
+            // b. 將試煉押金退還給使用者
+            user.BagelCount += trial.TrialDeposit;
+
+            // c. 記錄交易後的餘額
+            int balanceAfter = user.BagelCount;
+
+            // d. 建立一筆 BagelTransaction 交易紀錄來「記帳」
+            var transaction = new BagelTransaction
+            {
+                UserId = currentUserId,
+                TransactionType = TransactionType.試煉收付, 
+                ProductType = ProductType.Bagel,   // 商品類型：試煉押金
+                ReferenceId = trial.Id,                   // 關聯的試煉 ID
+                ItemName = "退出試煉退還押金",
+                Price = trial.TrialDeposit,               // 退款單價
+                Quantity = 1,
+                Amount = trial.TrialDeposit,              // 交易金額 (收入為正數)
+                BalanceBefore = balanceBefore,
+                BalanceAfter = balanceAfter
+                //CreatedAt = DateTime.UtcNow
+            };
+            _db.BagelTransactions.Add(transaction);
+
+            // e. 從 `TrialParticipants` 表中，移除這筆參與紀錄
+            _db.TrialParticipants.Remove(participation);
+
+            try
+            {
+                // f. 將所有變更 (更新 User、新增 BagelTransaction、刪除 TrialParticipant) 一次性存入資料庫
+                _db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+
+            // 5. 回傳成功的結果
+            var successResponse = new LeaveTrialResponseDto
+            {
+                Message = "成功退出試煉，貝果已退還。",
+                NewBagelCount = user.BagelCount // 回傳更新後的餘額
+            };
+
+            return Ok(successResponse);
+        }
 
         // 釋放資料庫連線資源
         protected override void Dispose(bool disposing)

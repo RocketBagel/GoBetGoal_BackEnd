@@ -190,6 +190,7 @@
     <Compile Include="Areas\HelpPage\SampleGeneration\SampleDirection.cs" />
     <Compile Include="Areas\HelpPage\SampleGeneration\TextSample.cs" />
     <Compile Include="Areas\HelpPage\XmlDocumentationProvider.cs" />
+    <Compile Include="Controllers\AiServiceController.cs" />
     <Compile Include="Controllers\AITestController.cs" />
     <Compile Include="Controllers\AuthController.cs" />
     <Compile Include="Controllers\AvatarsController.cs" />
@@ -199,6 +200,16 @@
     <Compile Include="Controllers\PaymentSupaController.cs" />
     <Compile Include="Controllers\PostsController.cs" />
     <Compile Include="Controllers\TransactionsController.cs" />
+    <Compile Include="Migrations\202508270210518_RemovePostModelUserStageIdRequired.cs" />
+    <Compile Include="Migrations\202508270210518_RemovePostModelUserStageIdRequired.Designer.cs">
+      <DependentUpon>202508270210518_RemovePostModelUserStageIdRequired.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202508270426355_RemoveUserStageNavigationFromPost.cs" />
+    <Compile Include="Migrations\202508270426355_RemoveUserStageNavigationFromPost.Designer.cs">
+      <DependentUpon>202508270426355_RemoveUserStageNavigationFromPost.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Models\DTOs\LeaveTrialResponseDto.cs" />
+    <Compile Include="Models\DTOs\PurchaseSuccessDto.cs" />
     <Compile Include="Controllers\TrialController.cs" />
     <Compile Include="Controllers\TrialsController.cs" />
     <Compile Include="Controllers\UsersController.cs" />
@@ -255,6 +266,7 @@
     <Compile Include="Models\DTOs\RegisterStepOneRequestDto.cs" />
     <Compile Include="Models\DTOs\RegisterStepTwoRequestDto.cs" />
     <Compile Include="Models\DTOs\AuthSuccessResponseDto.cs" />
+    <Compile Include="Models\DTOs\ShareTrialPostRequestDto.cs" />
     <Compile Include="Models\DTOs\StageInfoDto.cs" />
     <Compile Include="Models\DTOs\SuccessResponseDto.cs" />
     <Compile Include="Models\DTOs\TrialDetailDto.cs" />
@@ -462,6 +474,12 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202508240943271_RemoveUniqueConstraintFromPostUserStageId.resx">
       <DependentUpon>202508240943271_RemoveUniqueConstraintFromPostUserStageId.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202508270210518_RemovePostModelUserStageIdRequired.resx">
+      <DependentUpon>202508270210518_RemovePostModelUserStageIdRequired.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202508270426355_RemoveUserStageNavigationFromPost.resx">
+      <DependentUpon>202508270426355_RemoveUserStageNavigationFromPost.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
