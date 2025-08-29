@@ -11,6 +11,9 @@ namespace GoBetGoal_BackEnd.Models.DTOs
     public class PaymentResponseDto
     {
         public string Status { get; set; }
+
+        public string Message { get; set; }
+
         public PaymentResponseDetail Result { get; set; }
     }
 
