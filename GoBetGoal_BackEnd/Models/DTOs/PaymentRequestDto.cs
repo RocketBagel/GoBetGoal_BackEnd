@@ -25,8 +25,5 @@ namespace GoBetGoal_BackEnd.Models.DTOs
         [JsonProperty("deposit_money")]
         public int Amount { get; set; }
 
-        [Required]
-        [JsonProperty("order_id")]
-        public string OrderId { get; set; }
     }
 }

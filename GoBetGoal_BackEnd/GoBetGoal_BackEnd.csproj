@@ -199,6 +199,7 @@
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\PaymentSupaController.cs" />
     <Compile Include="Controllers\PostsController.cs" />
+    <Compile Include="Controllers\TestController.cs" />
     <Compile Include="Controllers\TransactionsController.cs" />
     <Compile Include="Migrations\202508270210518_RemovePostModelUserStageIdRequired.cs" />
     <Compile Include="Migrations\202508270210518_RemovePostModelUserStageIdRequired.Designer.cs">
@@ -269,6 +270,7 @@
     <Compile Include="Models\DTOs\ShareTrialPostRequestDto.cs" />
     <Compile Include="Models\DTOs\StageInfoDto.cs" />
     <Compile Include="Models\DTOs\SuccessResponseDto.cs" />
+    <Compile Include="Models\DTOs\SupabaseOrderDto.cs" />
     <Compile Include="Models\DTOs\TrialDetailDto.cs" />
     <Compile Include="Models\DTOs\TrialLikeDto.cs" />
     <Compile Include="Models\DTOs\TrialStageDto.cs" />

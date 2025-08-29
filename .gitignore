@@ -69,3 +69,6 @@ ehthumbs.db
 ===== [ASP.NET] MVC / Scaffolding readme =====
 
 ScaffoldingReadMe.txt
+
+====== Controller files ======
+TestController.cs
