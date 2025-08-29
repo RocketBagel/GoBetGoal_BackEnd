@@ -8,38 +8,29 @@ using System.Web;
 
 namespace GoBetGoal_BackEnd.Models
 {
-    public class PaymentTransaction
+    public class CheatBlanketHistory
     {
-        [Key]
+        [Key] 
         public int Id { get; set; }
 
         [Required]
         public Guid UserId { get; set; }
         public virtual User User { get; set; }
 
-        [Required]
-        public decimal Amount { get; set; }      //支付金額 (NTD)
+        public int? UserStageId { get; set; }
+        public virtual UserStage UserStage { get; set; }
 
         [Required]
-        public Method Method { get; set; }  //支付方式
+        public int Quantity { get; set; }
 
         [Required]
-        public string Status { get; set; }  //狀態
+        public int BalanceBefore { get; set; }
+
+        [Required]
+        public int BalanceAfter { get; set; }
 
         [Required]
         [Column(TypeName = "datetime2")]
-        public DateTime CreatedAt { get; set; } = DateTime.Now;    //建立時間
-
-        [Required]
-        public string OrderNo { get; set; } //訂單編號
-
-        [Column(TypeName = "datetime2")]
-        public DateTime? UpdatedAt { get; set; }    //狀態更新時間
-
-
-
-
-
-
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
     }
 }

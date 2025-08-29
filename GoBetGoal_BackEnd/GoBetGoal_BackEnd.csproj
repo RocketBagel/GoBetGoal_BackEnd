@@ -200,6 +200,7 @@
     <Compile Include="Controllers\PaymentSupaController.cs" />
     <Compile Include="Controllers\PostsController.cs" />
     <Compile Include="Controllers\TransactionsController.cs" />
+    <Compile Include="Enums\NotificationType.cs" />
     <Compile Include="Migrations\202508270210518_RemovePostModelUserStageIdRequired.cs" />
     <Compile Include="Migrations\202508270210518_RemovePostModelUserStageIdRequired.Designer.cs">
       <DependentUpon>202508270210518_RemovePostModelUserStageIdRequired.cs</DependentUpon>
@@ -208,6 +209,7 @@
     <Compile Include="Migrations\202508270426355_RemoveUserStageNavigationFromPost.Designer.cs">
       <DependentUpon>202508270426355_RemoveUserStageNavigationFromPost.cs</DependentUpon>
     </Compile>
+    <Compile Include="Models\CheatBlanketHistory.cs" />
     <Compile Include="Models\DTOs\LeaveTrialResponseDto.cs" />
     <Compile Include="Models\DTOs\PurchaseSuccessDto.cs" />
     <Compile Include="Controllers\TrialController.cs" />
@@ -281,6 +283,7 @@
     <Compile Include="Models\DTOs\UseCheatBlanketResponseDto.cs" />
     <Compile Include="Models\DTOs\UserProfileDto.cs" />
     <Compile Include="Models\FriendsRelationship.cs" />
+    <Compile Include="Models\Notification.cs" />
     <Compile Include="Models\PaymentTransaction.cs" />
     <Compile Include="Models\Post.cs" />
     <Compile Include="Models\PostLike.cs" />
