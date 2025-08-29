@@ -24,12 +24,14 @@ namespace GoBetGoal_BackEnd.Models
         public DbSet<TrialLike> TrialLikes { get; set; }
         public DbSet<UserTrialTemplate> UserTrialTemplates { get; set; }
         public DbSet<TrialParticipant> TrialParticipants { get; set; }
-
         public DbSet<BagelTransaction> BagelTransactions { get; set; }
         public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
         public DbSet<FriendsRelationship> FriendsRelationships { get; set; }
         public DbSet<Achievement> Achievements { get; set; }
         public DbSet<UserAchievement> UserAchievements { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<CheatBlanketHistory> CheatBlanketHistories { get; set; }
+
 
 
 
@@ -229,6 +231,35 @@ namespace GoBetGoal_BackEnd.Models
                 .WithMany(t => t.TrialParticipants)
                 .HasForeignKey(tp => tp.TrialId)
                 .WillCascadeOnDelete(true); // 試煉刪除時，參與者紀錄應一起刪除
+
+            // --- Notification 相關關聯 ---
+            // 1. 設定「接收者」的關聯: User (一) -> Notification (多)
+            modelBuilder.Entity<Notification>()
+                .HasRequired(n => n.Receiver) // 一個通知必須有一個接收者
+                .WithMany(u => u.ReceivedNotifications) // 對應到 User.cs 中的 ReceivedNotifications 集合
+                .HasForeignKey(n => n.ReceiverId)
+                .WillCascadeOnDelete(false); // 關閉級聯刪除，避免刪除使用者時產生錯誤
+
+            // 2. 設定「發送者」的關聯: User (一) -> Notification (多)
+            modelBuilder.Entity<Notification>()
+                .HasOptional(n => n.Sender) // 一個通知的發送者是可選的 (系統通知)
+                .WithMany(u => u.SentNotifications) // 對應到 User.cs 中的 SentNotifications 集合
+                .HasForeignKey(n => n.SenderId)
+                .WillCascadeOnDelete(false); // 同樣關閉級聯刪除
+
+            // --- CheatBlanketHistory 相關關聯 ---
+            // 1. 設定與 User 的關聯 (必要關聯)
+            modelBuilder.Entity<CheatBlanketHistory>()
+                .HasRequired(h => h.User) // 一筆歷史紀錄必須屬於一個 User
+                .WithMany(u => u.CheatBlanketHistories) // 對應到 User.cs 中的 CheatBlanketHistories 集合
+                .HasForeignKey(h => h.UserId)
+                .WillCascadeOnDelete(false); // 刪除 User 時不連帶刪除歷史紀錄
+
+            // 2. 設定與 UserStage 的關聯 (可選關聯)
+            modelBuilder.Entity<CheatBlanketHistory>()
+                .HasOptional(h => h.UserStage) // 一筆歷史紀錄可以不屬於任何 UserStage
+                .WithMany(us => us.CheatBlanketHistories) // 對應到 UserStage.cs 中的 CheatBlanketHistories 集合
+                .HasForeignKey(h => h.UserStageId);
         }
     }
 }

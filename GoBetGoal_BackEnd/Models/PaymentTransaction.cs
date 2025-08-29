@@ -24,10 +24,24 @@ namespace GoBetGoal_BackEnd.Models
         public Method Method { get; set; }  //支付方式
 
         [Required]
-        public Status Status { get; set; }  //狀態(Pending,Success,Failed)
+        [StringLength(50)]
+        public string Status { get; set; }  //狀態
 
         [Required]
         [Column(TypeName = "datetime2")]
         public DateTime CreatedAt { get; set; } = DateTime.Now;    //建立時間
+
+        [Required]
+        [StringLength(100)]
+        public string OrderNo { get; set; } //訂單編號
+
+        [Column(TypeName = "datetime2")]
+        public DateTime? UpdatedAt { get; set; }    //狀態更新時間
+
+
+
+
+
+
     }
 }

@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using System.Web.Http;
+using System.Web.Http.Cors;
 
 namespace GoBetGoal_BackEnd
 {
@@ -24,12 +25,12 @@ namespace GoBetGoal_BackEnd
             // 讓您的前端可以順利地呼叫後端 API
             //// 在正式上線時，建議將 origins 改為您前端的實際網址，例如 "http://your-frontend-domain.com"
 
-            //var cors = new EnableCorsAttribute(
-            //    origins: "*", // 在正式環境建議換成您的前端網址
-            //    headers: "*",
-            //    methods: "*"
-            //);
-            //config.EnableCors(cors);
+            var cors = new EnableCorsAttribute(
+                origins: "*", // 在正式環境建議換成您的前端網址
+                headers: "*",
+                methods: "*"
+            );
+            config.EnableCors(cors);
 
             // --- 3. 全局 Filter 設定 ---
             // 注意順序：通常 ExceptionFilter 在最前，AuthFilter 在後
