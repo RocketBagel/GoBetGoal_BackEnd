@@ -56,5 +56,8 @@ namespace GoBetGoal_BackEnd.Models
 
         public virtual Post Post { get; set; } //一對一
 
+        // (可選，如果你需要在 UserStage.cs 中查詢歷史紀錄)
+        public virtual ICollection<CheatBlanketHistory> CheatBlanketHistories { get; set; } = new List<CheatBlanketHistory>();
+
     }
 }

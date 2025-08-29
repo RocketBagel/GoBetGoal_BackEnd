@@ -75,7 +75,11 @@ namespace GoBetGoal_BackEnd.Models
         public virtual ICollection<FriendsRelationship> SendFriends { get; set; } = new List<FriendsRelationship>();
         public virtual ICollection<FriendsRelationship> ReceivedFriends { get; set; } = new List<FriendsRelationship>();
         public virtual ICollection<UserAchievement> UserAchievements { get; set; } = new List<UserAchievement>();
-
+        // 這個使用者收到的所有通知
+        public virtual ICollection<Notification> ReceivedNotifications { get; set; } = new List<Notification>();
+        // 這個使用者發出的所有通知
+        public virtual ICollection<Notification> SentNotifications { get; set; } = new List<Notification>();
+        public virtual ICollection<CheatBlanketHistory> CheatBlanketHistories { get; set; } = new List<CheatBlanketHistory>();
 
 
     }

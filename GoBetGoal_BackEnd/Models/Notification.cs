@@ -13,37 +13,39 @@ namespace GoBetGoal_BackEnd.Models
         [Key]
         public int Id { get; set; }
 
+        // --- 接收者 (必填) ---
         [Required]
         public Guid ReceiverId { get; set; }
         public virtual User Receiver { get; set; }
 
+        // --- 發送者 (可選) ---
+        public Guid? SenderId { get; set; }
+        public virtual User Sender { get; set; }
+
+        // --- 通知內容 ---
         [Required]
         public NotificationType NotificationType { get; set; }
 
         [Required]
+        [StringLength(150)]
         public string Content { get; set; }
 
         [Required]
         public bool IsRead { get; set; } = false;
 
-        public Guid? UserId { get; set; }
-        public virtual User User { get; set; }
+        // --- 關聯物件 ID (分離欄位法) ---
+        // 指向 Post, Trial, FriendsRelationship 等 int 主鍵的表
+        public int? ReferenceId_Int { get; set; }
 
-        // trialId & postId 
-        public int? ReferenceId { get; set; }
-
-
-        // 顯示 user avatar
-        public Guid? SenderId { get; set; }
-        public virtual User Sender { get; set; }
-
+        // 指向 User 等 Guid 主鍵的表 (例如當通知本身是關於某個使用者時)
+        public Guid? ReferenceId_Guid { get; set; }
 
         [Required]
         [Column(TypeName = "datetime2")]
-        public DateTime CreatedAt { get; set; } = DateTime.Now;    //建立時間
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         [Column(TypeName = "datetime2")]
-        public DateTime? UpdatedAt { get; set; }    //狀態更新時間
+        public DateTime? UpdatedAt { get; set; }
 
 
     }

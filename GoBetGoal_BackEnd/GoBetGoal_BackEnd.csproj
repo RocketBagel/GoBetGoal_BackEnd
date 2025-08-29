@@ -215,6 +215,10 @@
     <Compile Include="Migrations\202508270426355_RemoveUserStageNavigationFromPost.Designer.cs">
       <DependentUpon>202508270426355_RemoveUserStageNavigationFromPost.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202508290717026_AddNotificationAndCheatBlanketHistoryModel.cs" />
+    <Compile Include="Migrations\202508290717026_AddNotificationAndCheatBlanketHistoryModel.Designer.cs">
+      <DependentUpon>202508290717026_AddNotificationAndCheatBlanketHistoryModel.cs</DependentUpon>
+    </Compile>
     <Compile Include="Models\CheatBlanketHistory.cs" />
     <Compile Include="Models\DTOs\LeaveTrialResponseDto.cs" />
     <Compile Include="Models\DTOs\PurchaseSuccessDto.cs" />
@@ -489,6 +493,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202508270426355_RemoveUserStageNavigationFromPost.resx">
       <DependentUpon>202508270426355_RemoveUserStageNavigationFromPost.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202508290717026_AddNotificationAndCheatBlanketHistoryModel.resx">
+      <DependentUpon>202508290717026_AddNotificationAndCheatBlanketHistoryModel.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>

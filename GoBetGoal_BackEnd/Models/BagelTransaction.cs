@@ -34,6 +34,7 @@ namespace GoBetGoal_BackEnd.Models
         //public virtual PaymentTransaction PaymentTransaction { get; set; }
 
         [Required]
+        [StringLength(100)]
         public string ItemName { get; set; }
 
         [Required]
