@@ -1,4 +1,5 @@
-﻿using GoBetGoal_BackEnd.Models;
+﻿using GoBetGoal_BackEnd.Enums;
+using GoBetGoal_BackEnd.Models;
 using GoBetGoal_BackEnd.Models.DTOs;
 using System;
 using System.Collections.Generic;
@@ -6,12 +7,82 @@ using System.Linq;
 using System.Net;
 using System.Web;
 using System.Web.Http;
+using System.Data.Entity;
 
 namespace GoBetGoal_BackEnd.Controllers
 {
     public class NotificationsController : BaseApiController
     {
         private readonly Context _db = new Context();
+
+        /// <summary>
+        /// 獲取通知中心的訊息列表
+        /// </summary>
+        [HttpGet]
+        [Route("api/notifications")]
+        public IHttpActionResult GetNotifications()
+        {
+            // 1. 取得當前使用者 ID (此 API 需要驗證)
+            Guid currentUserId = GetCurrentUserId();
+
+            // 2. 一次性從資料庫撈出這位使用者所有的通知
+            //    使用 .Include() 預先載入發送者(Sender)的資料，避免 N+1 查詢
+            var allNotifications = _db.Notifications
+                .Include(n => n.Sender.UserAvatars.Select(ua => ua.Avatar))
+                .Where(n => n.ReceiverId == currentUserId)
+                .OrderByDescending(n => n.CreatedAt) // 統一先做排序
+                .ToList();
+
+            // 3. 在記憶體中，將通知分類並轉換成 DTO
+            var result = new NotificationCenterDto
+            {
+                // a. 篩選出「公告」類型的通知，並取前 10 筆
+                Announcements = allNotifications
+                    .Where(n => n.NotificationType == NotificationType.announcement)
+                    .Take(10)
+                    .Select(n => MapToDto(n)) // 使用輔助方法進行轉換
+                    .ToList(),
+
+                // b. 篩選出「非公告」且「未讀」的通知，並取前 10 筆
+                Unread = allNotifications
+                    .Where(n => n.NotificationType != NotificationType.announcement && !n.IsRead)
+                    .Take(10)
+                    .Select(n => MapToDto(n))
+                    .ToList(),
+
+                // c. 篩選出「非公告」且「已讀」的通知，並取前 10 筆
+                Read = allNotifications
+                    .Where(n => n.NotificationType != NotificationType.announcement && n.IsRead)
+                    .Take(10)
+                    .Select(n => MapToDto(n))
+                    .ToList()
+            };
+
+            return Ok(result);
+        }
+
+        // --- 建立一個私有的輔助方法，專門用來將 Notification Model 轉換為 DTO ---
+        private NotificationDto MapToDto(Notification notification)
+        {
+            return new NotificationDto
+            {
+                Id = notification.Id,
+                // 如果 Sender 是 null (例如系統公告)，SenderInfo 也會是 null
+                SenderInfo = notification.Sender == null ? null : new PublicUserProfileDto
+                {
+                    UserId = notification.Sender.Id,
+                    NickName = notification.Sender.NickName,
+                    CurrentAvatarUrl = notification.Sender.UserAvatars.FirstOrDefault(ua => ua.IsCurrent)?.Avatar?.AvatarImagePath
+                },
+                NotificationType = notification.NotificationType,
+                Content = notification.Content,
+                IsRead = notification.IsRead,
+                ReferenceId_Int = notification.ReferenceId_Int,
+                ReferenceId_Guid = notification.ReferenceId_Guid,
+                CreatedAt = notification.CreatedAt
+            };
+        }
+
 
         /// <summary>
         /// 將單筆通知標記為已讀
@@ -68,6 +139,8 @@ namespace GoBetGoal_BackEnd.Controllers
             // 5. 回傳成功的結果
             return Ok(new SuccessResponseDto { Message = "通知已成功標記為已讀。" });
         }
+
+
 
         // 釋放資料庫連線資源
         protected override void Dispose(bool disposing)
