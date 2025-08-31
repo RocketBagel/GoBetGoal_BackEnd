@@ -30,7 +30,6 @@ namespace GoBetGoal_BackEnd.Models
         public DbSet<Achievement> Achievements { get; set; }
         public DbSet<UserAchievement> UserAchievements { get; set; }
         public DbSet<Notification> Notifications { get; set; }
-        public DbSet<CheatBlanketHistory> CheatBlanketHistories { get; set; }
 
 
 
@@ -247,19 +246,6 @@ namespace GoBetGoal_BackEnd.Models
                 .HasForeignKey(n => n.SenderId)
                 .WillCascadeOnDelete(false); // 同樣關閉級聯刪除
 
-            // --- CheatBlanketHistory 相關關聯 ---
-            // 1. 設定與 User 的關聯 (必要關聯)
-            modelBuilder.Entity<CheatBlanketHistory>()
-                .HasRequired(h => h.User) // 一筆歷史紀錄必須屬於一個 User
-                .WithMany(u => u.CheatBlanketHistories) // 對應到 User.cs 中的 CheatBlanketHistories 集合
-                .HasForeignKey(h => h.UserId)
-                .WillCascadeOnDelete(false); // 刪除 User 時不連帶刪除歷史紀錄
-
-            // 2. 設定與 UserStage 的關聯 (可選關聯)
-            modelBuilder.Entity<CheatBlanketHistory>()
-                .HasOptional(h => h.UserStage) // 一筆歷史紀錄可以不屬於任何 UserStage
-                .WithMany(us => us.CheatBlanketHistories) // 對應到 UserStage.cs 中的 CheatBlanketHistories 集合
-                .HasForeignKey(h => h.UserStageId);
         }
     }
 }

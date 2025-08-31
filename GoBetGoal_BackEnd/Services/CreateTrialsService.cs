@@ -98,7 +98,7 @@ namespace GoBetGoal_BackEnd.Services
                     var bageldata = new BagelTransaction
                     {
                         User = user,
-                        TransactionType = TransactionType.試煉收付,
+                        TransactionType = TransactionType.試煉押金,
                         ProductType = ProductType.Bagel,
                         ReferenceId = trial.Id,
                         ItemName = trial.TrialName,
@@ -129,7 +129,6 @@ namespace GoBetGoal_BackEnd.Services
                             ChanceRemain = 3,
                             StartTime = startTime,
                             EndTime = endTime,
-                            IsCheat = false,
                             Status = Status.pending,
                             CreatedAt = DateTime.Now
                         };

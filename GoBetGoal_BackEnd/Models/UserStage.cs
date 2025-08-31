@@ -43,9 +43,9 @@ namespace GoBetGoal_BackEnd.Models
         [Column(TypeName = "datetime2")]
         public DateTime EndTime { get; set; }
 
-        // 看畫面需不需要判斷各關卡是否使用遮羞布
-        [Required]
-        public bool IsCheat { get; set; } = false;
+        //// 看畫面需不需要判斷各關卡是否使用遮羞布
+        //[Required]
+        //public bool IsCheat { get; set; } = false;
 
         [Required]
         public Status Status { get; set; } = (Status)0; //預設是pending
@@ -56,8 +56,7 @@ namespace GoBetGoal_BackEnd.Models
 
         public virtual Post Post { get; set; } //一對一
 
-        // (可選，如果你需要在 UserStage.cs 中查詢歷史紀錄)
-        public virtual ICollection<CheatBlanketHistory> CheatBlanketHistories { get; set; } = new List<CheatBlanketHistory>();
+       
 
     }
 }

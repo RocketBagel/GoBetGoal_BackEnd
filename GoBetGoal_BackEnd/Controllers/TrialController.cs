@@ -1,15 +1,13 @@
-﻿using GoBetGoal_BackEnd.Models;
+﻿using GoBetGoal_BackEnd.Enums;
+using GoBetGoal_BackEnd.Models;
 using GoBetGoal_BackEnd.Models.DTOs;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-using System.Web.Http;
 using System.Data.Entity;
-using GoBetGoal_BackEnd.Enums;
+using System.Linq;
 using System.Net;
-using Newtonsoft.Json;
-using GoBetGoal_BackEnd.Security;
+using System.Web.Http;
 
 namespace GoBetGoal_BackEnd.Controllers
 {
@@ -560,7 +558,7 @@ namespace GoBetGoal_BackEnd.Controllers
             var transaction = new BagelTransaction
             {
                 UserId = currentUserId,
-                TransactionType = TransactionType.試煉收付, 
+                TransactionType = TransactionType.試煉押金, 
                 ProductType = ProductType.Bagel,   // 商品類型：試煉押金
                 ReferenceId = trial.Id,                   // 關聯的試煉 ID
                 ItemName = "退出試煉退還押金",
@@ -595,6 +593,121 @@ namespace GoBetGoal_BackEnd.Controllers
 
             return Ok(successResponse);
         }
+
+
+
+        [HttpGet]
+        [Route("api/trial/{trialId}/results")]
+        public IHttpActionResult GetMyTrialResults(int trialId)
+        {
+            // 1. 取得並驗證使用者身份
+            Guid currentUserId = GetCurrentUserId();
+
+            // --- 步驟 A: 一次性從資料庫撈取所有需要的資料 ---
+
+            // a. 查詢試煉本身，並預先載入模板和所有參與者
+            var trial = _db.Trials
+                .Include(t => t.TrialTemplate)
+                .Include(t => t.TrialParticipants.Select(p => p.Invitee))
+                .FirstOrDefault(t => t.Id == trialId);
+
+            if (trial == null) { return Content(HttpStatusCode.NotFound, new ErrorResponseDto { ErrorCode = "TRIAL_NOT_FOUND", Message = "指定的試煉不存在。" }); }
+
+            // b. (安全檢查) 確認當前使用者是參與者之一
+            var participants = trial.TrialParticipants.Where(p => p.Status == Status.accepted).ToList();
+            if (!participants.Any(p => p.InviteeId == currentUserId))
+            {
+                return Content(HttpStatusCode.Forbidden, new ErrorResponseDto { ErrorCode = "NOT_A_PARTICIPANT", Message = "您並非此試煉的參與者。" });
+            }
+
+            // c. 撈出這個試煉所有的關卡進度 (UserStages)
+            var allUserStagesInTrial = _db.UserStages
+                .Where(us => us.TrialId == trialId)
+                .ToList();
+
+            // d. 撈出當前使用者在此試煉中獲得的成就
+            var myAchievements = _db.UserAchievements
+                .Include(ua => ua.Achievement)
+                .Where(ua => ua.TrialId == trialId && ua.UserId == currentUserId)
+                .Select(ua => ua.Achievement)
+                .ToList();
+
+            // --- 步驟 B: 在記憶體中進行計算與組裝 ---
+
+            // a. 組合「排行榜」資料
+            var leaderboardEntries = new List<LeaderboardEntryDto>();
+            foreach (var p in participants)
+            {
+                var participantStages = allUserStagesInTrial.Where(us => us.UserId == p.InviteeId).ToList();
+                var failCount = participantStages.Count(us => us.Status == Status.fail);
+                var cheatCount = participantStages.Count(us => us.Status == Status.cheat);
+                var completeCount = participantStages.Count(us => us.Status == Status.pass || us.Status == Status.cheat);
+
+                leaderboardEntries.Add(new LeaderboardEntryDto
+                {
+                    UserInfo = new PublicUserProfileDto { UserId = p.InviteeId, NickName = p.Invitee.NickName, CurrentAvatarUrl=p.Invitee.UserAvatars.Where(a=>a.IsCurrent==true).Select(a=>a.Avatar.AvatarImagePath).FirstOrDefault()},
+                    CompleteStageCount = completeCount,
+                    CheatBlanketUsedCount = cheatCount,
+                });
+            }
+
+            // b. 進行排序並賦予名次
+            // b. 進行排序
+            var sortedLeaderboard = leaderboardEntries
+                .OrderByDescending(e => e.CompleteStageCount) // 規則一：失敗次數少的排前面
+                .ToList();
+
+            // --- *** 這是處理同名次的核心邏輯 *** ---
+
+            int rank = 0;
+            int lastCompleteStageCount = -1; // 儲存上一個人的失敗次數，-1 確保第一個人一定會被賦予名次
+
+            for (int i = 0; i < sortedLeaderboard.Count; i++)
+            {
+                var currentEntry = sortedLeaderboard[i];
+
+                // 檢查當前這位參賽者的分數，是否和上一位不同
+                if (currentEntry.CompleteStageCount != lastCompleteStageCount)
+                {
+                    // 如果分數不同，就更新名次為當前的位置
+                    rank = i + 1;
+                }
+
+                // 將計算好的名次，賦予給當前的參賽者
+                currentEntry.Rank = rank;
+
+                // 更新「上一位的分數」，為下一次迴圈做準備
+                lastCompleteStageCount = currentEntry.CompleteStageCount;
+            }
+            // --- *** 邏輯結束 *** ---
+
+            // c. 組合「我的個人結果」
+            var myStages = allUserStagesInTrial.Where(us => us.UserId == currentUserId).ToList();
+            var myCompleteCount = myStages.Count(us => us.Status == Status.pass || us.Status == Status.cheat);
+
+            var myResult = new TrialResultDto
+            {
+                TrialInfo = new TrialResultInfoDto { TrialId = trial.Id, TrialCategory = JsonConvert.DeserializeObject<List<string>>(trial.TrialTemplate.TrialCategory), TrialName = trial.TrialName, TrialTitle = trial.TrialTemplate.TrialTitle, TrialDescription = trial.TrialTemplate.TrialDescription, TrialFrequency = trial.TrialTemplate.TrialFrequency, StageCount = trial.TrialTemplate.StageCount, TotalDays = trial.TrialTemplate.TrialFrequency * trial.TrialTemplate.StageCount, TotalParticipants = trial.TrialParticipants.Count(x => x.Status == Status.accepted), TrialStatus = trial.TrialStatus, EndTime = trial.EndTime },
+                Leaderboard = sortedLeaderboard,
+                MyResult = new MyPersonalResultDto
+                {
+                    MyUserInfo = _db.Users.Where(u => u.Id == currentUserId).Select(u => new PublicUserProfileDto { UserId = u.Id, NickName = u.NickName, CurrentAvatarUrl = u.UserAvatars.Where(a => a.IsCurrent == true).Select(a => a.Avatar.AvatarImagePath).FirstOrDefault() }).FirstOrDefault(), // 重新查詢以取得完整的 DTO
+                    MyCompleteStageCount = myCompleteCount,
+                    MyCheatBlanketUsedCount = myStages.Count(us => us.Status == Status.cheat),
+                    MyAchievements = myAchievements.OrderBy(a => a.SortOrder).Select(a => new AchievementDto { Title = a.AchievementTitle, ImagePath = a.AchievementImagePath, SortOrder = a.SortOrder }).ToList(),
+                    MyAllApprovedPhotos = myStages
+                    .Where(us => us.UploadImagePath != null && (us.Status == Status.pass))
+                    .SelectMany(us => JsonConvert.DeserializeObject<List<string>>(us.UploadImagePath))
+                    .ToList(),
+                    RewardAmount = _db.BagelTransactions.Where(x => x.UserId == currentUserId && x.TransactionType == TransactionType.試煉結算 && x.ProductType == ProductType.Bagel && x.ReferenceId==trial.Id).Select(x=>x.Amount).FirstOrDefault()
+                }
+            };
+
+            return Ok(myResult);
+        }
+
+     
+
 
         // 釋放資料庫連線資源
         protected override void Dispose(bool disposing)
