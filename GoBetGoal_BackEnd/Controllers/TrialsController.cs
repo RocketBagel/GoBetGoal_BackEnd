@@ -140,120 +140,112 @@ namespace GoBetGoal_BackEnd.Controllers
         }
 
 
-        //public IHttpActionResult CreateTrial([FromBody] CreateTrialRequestDto request)
-        //{
-        //    //if (!ModelState.IsValid)
-        //    //    return BadRequest(ModelState);
 
-        //    // 轉換 StartAt
-        //    if (!DateTime.TryParse(request.StartAt, out DateTime startTime))
-        //    {
-        //        return BadRequest("StartAt 必須是有效日期格式");
-        //    }
+        [HttpPost]
+        [Route("api/trials/{templateId}/purchase")]
+        public IHttpActionResult PurchaseTrialTemplate(int templateId)
+        {
+            //取得當前使用者 ID 
+            Guid currentUserId = GetCurrentUserId();
+            var user = _context.Users.Find(currentUserId);
+            if (user == null)
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "USER_NOT_FOUND",
+                    Message = "指定的使用者不存在。"
+                };
+                return Content(HttpStatusCode.NotFound, error);
+            }
 
-        //    if (startTime < DateTime.Now)
-        //    {
-        //        return BadRequest("非有效日期，請重新確認輸入！");
-        //    }
+            //找出要購買解鎖的試煉模板
+            var theTrialTemplate = _context.TrialTemplates.FirstOrDefault(t => t.Id == templateId);
+            if (theTrialTemplate == null)
+            {
+                return Content(HttpStatusCode.NotFound, new ErrorResponseDto
+                {
+                    ErrorCode = "TRIALTEMPLATE_NOT_FOUND",
+                    Message = "指定的試煉模板不存在。"
+                });
+            }
 
-        //    // 轉換 ChallengeId
-        //    if (!int.TryParse(request.ChallengeId, out int templateId))
-        //    {
-        //        return BadRequest("ChallengeId 必須是整數");
-        //    }
+            //檢查使用者是否已經擁有
+            bool userOwned = _context.UserTrialTemplates.Any(ut => ut.UserId == currentUserId && ut.TrialTemplateId == templateId);
+            if (userOwned)
+            {
+                return Content(HttpStatusCode.Conflict, new ErrorResponseDto 
+                {
+                    ErrorCode = "TRIALTEMPLATE_ALREADY_OWNED", 
+                    Message = "您已經擁有此模板。" 
+                });
+            }
 
-        //    // 轉換 CreateBy
-        //    if (!Guid.TryParse(request.CreateBy, out Guid userId))
-        //    {
-        //        return BadRequest("CreateBy 必須是合法 Guid");
-        //    }
+            //確認貝果餘額是否足夠
+            if (user.BagelCount < theTrialTemplate.TrialTemplatePrice)
+            {
+                return Content(HttpStatusCode.BadRequest, new ErrorResponseDto 
+                {
+                    ErrorCode = "INSUFFICIENT_BAGELS",
+                    Message = "貝果數量不足。" 
+                });
+            }
 
-        //    // 1. 取得 TrialTemplate
-        //    var template = _context.TrialTemplates.FirstOrDefault(t => t.Id == templateId);
+            var balanceBefore = user.BagelCount;
+            var balanceAfter = balanceBefore - theTrialTemplate.TrialTemplatePrice;
 
-        //    if (template == null)
-        //    {
-        //        return NotFound();
-        //    }
+            // 建立 BagelTransaction 資料
+            var transaction = new BagelTransaction
+            {
+                UserId = user.Id,
+                TransactionType = TransactionType.花費解鎖,
+                ProductType = ProductType.TrialTemplate,
+                ReferenceId = templateId,
+                ItemName = theTrialTemplate.TrialTitle,
+                Price = theTrialTemplate.TrialTemplatePrice,
+                Quantity = 1,
+                Amount = theTrialTemplate.TrialTemplatePrice,
+                BalanceBefore = balanceBefore,
+                BalanceAfter = balanceAfter,
+                CreatedAt = DateTime.Now
+            };
 
-        //    // 檢查使用者是否已解鎖該模板
-        //    var hasTemplate = _context.UserTrialTemplates
-        //        .Any(ut => ut.UserId == userId && ut.TrialTemplateId == templateId);
+            // 建立 UserTrialTemplate 資料
+            var newOwned = new UserTrialTemplate
+            {
+                UserId = user.Id,
+                TrialTemplateId = templateId,
+                AcquiredAt = DateTime.Now
+            };
 
-        //    if (!hasTemplate)
-        //        return Content(System.Net.HttpStatusCode.BadRequest, "該模板尚未購買解鎖");
+            using (var dbTransaction = _context.Database.BeginTransaction())
+            {
+                try
+                {
+                    _context.BagelTransactions.Add(transaction);
+                    user.BagelCount = balanceAfter;
+                    _context.UserTrialTemplates.Add(newOwned);
 
-        //    // 2. 計算 EndTime
-        //    // EndTime = StartTime + (StageCount * TrialFrequency)天
-        //    var totalDays = template.StageCount * template.TrialFrequency;
-        //    var endTime = startTime.Date.AddDays(totalDays);
+                    _context.SaveChanges(); 
 
-        //    // 3. 建立 Trial
-        //    var trial = new Trial
-        //    {
-        //        UserId = userId,
-        //        TrialTemplateId = templateId,
-        //        TrialName = request.Title,
-        //        TrialDeposit = request.Deposit,
-        //        StartTime = startTime.Date,
-        //        EndTime = endTime,
-        //        TrialStatus = Status.pending,
-        //        CreatedAt = DateTime.Now
-        //    };
+                    dbTransaction.Commit(); 
+                }
+                catch (Exception ex)
+                {
+                    dbTransaction.Rollback(); // 失敗就回滾
+                    return InternalServerError(ex);
+                }
+            }
 
-        //    // 4. 建立 TrialParticipant
-        //    using (var transaction = _context.Database.BeginTransaction())
-        //    {
-        //        try
-        //        {
-        //            // 先新增 Trial
-        //            _context.Trials.Add(trial);
+            // 回傳成功的結果
+            var successResponse = new PurchaseSuccessDto
+            {
+                Message = $"已成功解鎖試煉模板-{theTrialTemplate.Id}！",
+                RemainingBagelCount = user.BagelCount // 回傳更新後的餘額
+            };
 
+            return Ok(successResponse);
+        }
 
-        //            // 新增 TrialParticipant
-        //            var participant = new TrialParticipant
-        //            {
-        //                TrialId = trial.Id,
-        //                ParticipantId = userId,
-        //                InviteeId = userId,
-        //                InviteAt = DateTime.Now
-        //            };
-        //            participant.Status = (participant.ParticipantId == participant.InviteeId)
-        //                ? Status.accepted
-        //                : Status.pending;
-
-        //            _context.TrialParticipants.Add(participant);
-
-        //            // 最後一次 SaveChange 包成一個 Transaction
-        //            _context.SaveChanges();
-
-        //            // 全部成功才提交
-        //            transaction.Commit();
-
-        //            // 回傳新增結果
-        //            return Ok(new
-        //            {
-        //                trial.Id,
-        //                trial.TrialName,
-        //                trial.StartTime,
-        //                trial.EndTime,
-        //                trial.TrialDeposit,
-        //                trial.TrialTemplateId,
-        //                trial.TrialStatus
-        //            });
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            // 其中一個失敗就回滾
-        //            transaction.Rollback();
-        //            return InternalServerError(ex);
-        //        }
-        //    }
-
-
-
-
-        //}
 
         protected override void Dispose(bool disposing)
         {
