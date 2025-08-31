@@ -25,6 +25,7 @@ namespace GoBetGoal_BackEnd.Controllers
         /// <returns>成功後回傳包含 JWT 的物件</returns>
         [HttpPost]
         [Route("api/auth/register")]
+        [AllowAnonymous]
         public IHttpActionResult RegisterStepOne(RegisterStepOneRequestDto model)
         {
             //// 驗證傳入的資料是否符合 DTO 的規則 (例如 [Required], [EmailAddress])
@@ -140,6 +141,7 @@ namespace GoBetGoal_BackEnd.Controllers
 
         [HttpPost]
         [Route("api/auth/login")]
+        [AllowAnonymous]
         public IHttpActionResult Login(LoginRequestDto model)
         {
             var lowerCaseEmail = model.Email.ToLowerInvariant();
