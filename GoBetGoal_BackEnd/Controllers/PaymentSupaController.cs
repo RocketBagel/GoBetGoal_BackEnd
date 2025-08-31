@@ -1,6 +1,7 @@
 ﻿using GoBetGoal_BackEnd.Models;
 using GoBetGoal_BackEnd.Models.DTOs;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Swashbuckle.Swagger;
 using System;
 using System.Collections.Generic;
@@ -318,21 +319,24 @@ namespace GoBetGoal_BackEnd.Controllers
             {
                 Trace.TraceWarning("NotifyURL: No TradeInfo received");
                 return Ok("1|OK");
-                //return BadRequest("No TradeInfo received.");
+                
             }
 
             TradeInfoResponseDto result = null;
             try
             {
-                var decrypted = DecryptAES(tradeInfo);
                 // 解析 JSON
+                var decrypted = DecryptAES(tradeInfo);
                 result = JsonConvert.DeserializeObject<TradeInfoResponseDto>(decrypted);
+
+                // 解析 JSON (測試用，直接把 TradeInfo 當明文JSON)
+                //result = JsonConvert.DeserializeObject<TradeInfoResponseDto>(tradeInfo);
 
                 if (result == null || result.Result == null)
                 {
                     Trace.TraceWarning("NotifyURL: No TradeInfo received");
                     return Ok("1|OK");
-                    //return BadRequest("Invalid TradeInfo format.");
+                   
                 }
             }
             catch (Exception ex)
@@ -341,30 +345,80 @@ namespace GoBetGoal_BackEnd.Controllers
                 return Ok("1|OK");
             }
 
-            //更新資料庫訂單狀態邏輯
+            //更新資料庫訂單狀態、交易成功更新貝果數邏輯
             try
             {
                 //更新 Supabase 資料
                 using (var client = new HttpClient())
                 {
-                    // 要更新的欄位
-                    var payload = new { status = result?.Status?.ToLower() ?? "fail" };
+                    // Supabase 必要 Header
+                    if (!client.DefaultRequestHeaders.Contains("apikey"))
+                    {
+                        client.DefaultRequestHeaders.Add("apikey", ConfigurationManager.AppSettings["Supabase_ApiKey"]);
+                        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ConfigurationManager.AppSettings["Supabase_ApiKey"]);
+                    }
+
+                    // 更新deposit.status的欄位
+                    var newStatus = result.Status?.ToLower() ?? "fail";
+                    var payload = new { status = newStatus };
                     var json = JsonConvert.SerializeObject(payload);
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                    // Supabase 必要 Header
-                    client.DefaultRequestHeaders.Add("apikey", ConfigurationManager.AppSettings["Supabase_ApiKey"]);
-                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ConfigurationManager.AppSettings["Supabase_ApiKey"]);
 
-                    // PATCH 請求
-                    var request = new HttpRequestMessage(new HttpMethod("PATCH"), $"https://rbrltczejudsoxphrxnq.supabase.co/rest/v1/deposit?order_no=eq.{result.Result.MerchantOrderNo}")
+                    // PATCH 請求更新status欄位
+                    var patchDeposit = new HttpRequestMessage(new HttpMethod("PATCH"), $"https://rbrltczejudsoxphrxnq.supabase.co/rest/v1/deposit?order_no=eq.{result.Result.MerchantOrderNo}")
                     {
                         Content = content
                     };
 
-                    var response = client.SendAsync(request).Result;
+                    var responseDeposit = client.SendAsync(patchDeposit).Result;
+                    responseDeposit.EnsureSuccessStatusCode();
+
+                    //交易成功才加 candy_count
+                    if (newStatus == "success")
+                    {
+                        // 查詢這筆訂單的 user_id 和 get_bagel
+                        var getDeposit = client.GetAsync($"https://rbrltczejudsoxphrxnq.supabase.co/rest/v1/deposit?order_no=eq.{result.Result.MerchantOrderNo}&select=user_id,get_bagel").Result;
+
+                        var depositJson = getDeposit.Content.ReadAsStringAsync().Result;
+                        var depositArray = JArray.Parse(depositJson);
+
+                        if (depositArray != null && depositArray.Count > 0)
+                        {
+                            var userId = depositArray[0]["user_id"]?.ToString();
+                            var getBagel = depositArray[0]["get_bagel"]?.Value<int>() ?? 0;
+
+                            if (!string.IsNullOrEmpty(userId) && getBagel > 0)
+                            {
+                                // 更新 user_info.candy_count = candy_count + get_bagel
+                                // Supabase REST API 沒辦法直接做 += ，呼叫 RPC function 增加 candy_count值
+                                var rpcPayload = new { the_user = userId, amount = getBagel };
+                                var jsonRpc = JsonConvert.SerializeObject(rpcPayload);
+                                var contentRpc = new StringContent(jsonRpc, Encoding.UTF8, "application/json");
+
+                                var rpcRequest = new HttpRequestMessage(HttpMethod.Post,"https://rbrltczejudsoxphrxnq.supabase.co/rest/v1/rpc/increment_bagel")
+                                {
+                                    Content = contentRpc
+                                };
+                               
+
+                                var rpcResponse = client.SendAsync(rpcRequest).Result;
+                                rpcResponse.EnsureSuccessStatusCode();
+                            }
+                            else
+                            {
+                                Trace.TraceWarning($"NotifyURL: user_id 或 get_bagel 無效，userId={userId}, getBagel={getBagel}");
+                                return Ok("1|OK");
+                            }
+                        }
+                        else
+                        {
+                            Trace.TraceWarning($"NotifyURL: 找不到 deposit 資料, order_no={result.Result.MerchantOrderNo}");
+                        }
+                    }
                 }
             }
+          
             catch (Exception ex)
             {
                 Trace.TraceError($"NotifyURL 更新 Supabase 失敗: {ex.Message}\n{ex.StackTrace}");
