@@ -5,8 +5,11 @@ using Swashbuckle.Swagger;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Formatting;
 using System.Net.Http.Headers;
 using System.Runtime.Remoting.Messaging;
 using System.Security.Cryptography;
@@ -162,70 +165,142 @@ namespace GoBetGoal_BackEnd.Controllers
         {
             string tradeInfo = null;
 
-            if (HttpContext.Current.Request.HttpMethod == "POST")
+            try
             {
-                // POST 取 form-data
-                tradeInfo = HttpContext.Current.Request.Form["TradeInfo"];
+                if (HttpContext.Current.Request.HttpMethod.Equals("POST", StringComparison.OrdinalIgnoreCase))
+                {
+                    // POST 取 x-www-form-urlencoded
+                    //tradeInfo = HttpContext.Current.Request.Form["TradeInfo"];
+                    tradeInfo = HttpContext.Current.Request.Unvalidated.Form["TradeInfo"]
+                     ?? HttpContext.Current.Request.Form["TradeInfo"]
+                     ?? HttpContext.Current.Request.Params["TradeInfo"];
+                }
+                else
+                {
+                    // GET 取 query string
+                    tradeInfo = HttpContext.Current.Request.QueryString["TradeInfo"];
+                }
+
+                if (string.IsNullOrEmpty(tradeInfo))
+                {
+                    Trace.TraceWarning("ReturnURL: No TradeInfo received");
+                    return BadRequest("No TradeInfo received.");
+                }
+
+                //解密 TradeInfo
+                var decrypted = "";
+                try
+                {
+                    //測試用
+                    if (tradeInfo == "test")
+                    {
+                        decrypted = "{\"Status\":\"SUCCESS\",\"Message\":\"付款成功\",\"Result\":{\"MerchantOrderNo\":\"12345\",\"Amt\":1000}}";
+
+                    }
+                    else
+                    {
+                        decrypted = DecryptAES(tradeInfo);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Trace.TraceError($"ReturnURL 解密失敗: {ex.Message}\n{ex.StackTrace}");
+                    return BadRequest("Invalid TradeInfo format");
+                }
+
+                //解析 JSON
+                TradeInfoResponseDto result = null;
+                //var decrypted = DecryptAES(tradeInfo);
+                try
+                {
+                    result = JsonConvert.DeserializeObject<TradeInfoResponseDto>(decrypted);
+                    if (result == null || result.Result == null)
+                    {
+                        Trace.TraceWarning("ReturnURL: TradeInfo format invalid");
+                        return BadRequest("Invalid TradeInfo format");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Trace.TraceError($"ReturnURL 解析 JSON 失敗: {ex.Message}\n{ex.StackTrace}");
+                    return BadRequest("Invalid TradeInfo format");
+                }
+
+
+                //判斷交易狀態
+                string status = result.Status?.Trim().ToLower() ?? "fail";         //成功或錯誤代碼 (可用ToLower()轉為小寫)
+                string message = result.Message ?? "";          
+                string orderNo = result.Result?.MerchantOrderNo ?? "";
+                string amount = result.Result?.Amt.ToString() ?? "0";
+
+                //後端設定判斷 前端路由模式 使用
+                bool useHashRouter = true; //true = HashRouter, false = BrowserRouter
+
+                //組成導向網址
+                string baseUrl = "https://gobetgoal.vercel.app";
+                string path = "/shop";
+                //string query = $"?status={status}&orderNo={orderNo}&message={Uri.EscapeDataString(message)}";
+                string formattedMessage = $"{status}:{message}";
+                string redirectUrl;
+                string html;
+
+                if (useHashRouter)
+                {
+                    redirectUrl = $"{baseUrl}";
+                    //redirectUrl = $"{baseUrl}/# {path}{query}";
+                }
+                else
+                {
+                    redirectUrl = $"{baseUrl}";
+                    //redirectUrl = $"{baseUrl}{path}{query}";
+                }
+
+                if (status=="success")
+                {
+                    //回傳 HTML + JS 導向 交易成功頁，並顯示提示訊息
+                    html = $@"<html>
+                                    <head>
+                                        <meta charset='utf-8'/>
+                                        <title>付款結果導向</title>
+                                        <script>
+                                            window.location.href = '{redirectUrl}{path}?status=success&orderNo={orderNo}';
+                                        </script>
+                                    </head>
+                                    <body>
+                                        <p>付款結果處理中，請稍候...</p>
+                                    </body>
+                                 </html>";
+                }
+                else 
+                {
+                    //回傳 HTML + JS 導向 交易失敗頁，並顯示提示訊息
+                     html = $@"<html>
+                                    <head>
+                                        <meta charset='utf-8'/>
+                                        <title>付款結果導向</title>
+                                        <script>
+                                            window.location.href = '{redirectUrl}{path}?status=fail&orderNo={orderNo}&message={Uri.EscapeDataString(formattedMessage)}'; 
+                                        </script>
+                                    </head>
+                                    <body>
+                                        <p>付款結果處理中，請稍候...</p>
+                                    </body>
+                                 </html>";
+                }
+               
+
+                var response = new HttpResponseMessage
+                {
+                    Content = new StringContent(html, Encoding.UTF8, "text/html")
+                };
+
+                 return ResponseMessage(response);
+            }catch (Exception ex)
+            {
+                // 捕捉所有未預期錯誤，避免整個 API 500
+                Trace.TraceError($"ReturnURL 未預期錯誤: {ex.Message}\n{ex.StackTrace}");
+                return BadRequest("Server error processing TradeInfo");
             }
-            else
-            {
-                // GET 取 query string
-                tradeInfo = HttpContext.Current.Request.QueryString["TradeInfo"];
-            }
-
-            if (string.IsNullOrEmpty(tradeInfo))
-            {
-                return BadRequest("No TradeInfo received.");
-            }
-
-            var decrypted = DecryptAES(tradeInfo);
-            var result = JsonConvert.DeserializeObject<PaymentResponseDto>(decrypted);
-
-
-            //判斷交易狀態
-            string status = result.Status.ToLower();          //成功或錯誤代碼 (可用ToLower()轉為小寫)
-            string message = result.Message ?? "";           //交易訊息("授權成功"或"錯誤訊息")
-            string orderNo = result.Result?.MerchantOrderNo ?? "";
-            string amount = result.Result?.Amt.ToString() ?? "0";
-
-            //後端設定判斷 前端路由模式 使用
-            bool useHashRouter = true; //true = HashRouter, false = BrowserRouter
-
-            //組成導向網址
-            string baseUrl = "https://gobetgoal.vercel.app";
-            string path = "/payment/result";
-            string query = $"?status={status}&orderNo={orderNo}&message={Uri.EscapeDataString(message)}";
-
-            string redirectUrl;
-            if (useHashRouter)
-            {
-                redirectUrl = $"{baseUrl}/# {path}{query}";
-            }
-            else
-            {
-                redirectUrl = $"{baseUrl}{path}{query}";
-            }
-
-            //回傳 HTML + JS 強制導向，並顯示提示訊息
-            string html = $@"<html>
-                                <head>
-                                    <meta charset='utf-8'/>
-                                    <title>付款結果導向</title>
-                                    <script>
-                                        window.location.href = '{redirectUrl}';
-                                    </script>
-                                </head>
-                                <body>
-                                    <p>付款結果處理中，請稍候...</p>
-                                </body>
-                             </html>";
-
-            var response = new HttpResponseMessage
-            {
-                Content = new StringContent(html, Encoding.UTF8, "text/html")
-            };
-
-            return ResponseMessage(response);
         }
 
 
@@ -236,35 +311,64 @@ namespace GoBetGoal_BackEnd.Controllers
         public IHttpActionResult NotifyURL()
         {
 
-            // 藍新會以 form-data 回傳
+            // 藍新會以 form-data/ x-www-form-urlencoded 回傳
             string tradeInfo = HttpContext.Current.Request.Form["TradeInfo"];
 
-            var decrypted = DecryptAES(tradeInfo);
+            if (string.IsNullOrEmpty(tradeInfo))
+            {
+                Trace.TraceWarning("NotifyURL: No TradeInfo received");
+                return Ok("1|OK");
+                //return BadRequest("No TradeInfo received.");
+            }
 
-            // 解析 JSON
-            var result = JsonConvert.DeserializeObject<PaymentResponseDto>(decrypted);
+            TradeInfoResponseDto result = null;
+            try
+            {
+                var decrypted = DecryptAES(tradeInfo);
+                // 解析 JSON
+                result = JsonConvert.DeserializeObject<TradeInfoResponseDto>(decrypted);
+
+                if (result == null || result.Result == null)
+                {
+                    Trace.TraceWarning("NotifyURL: No TradeInfo received");
+                    return Ok("1|OK");
+                    //return BadRequest("Invalid TradeInfo format.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError($"NotifyURL 解密/解析失敗: {ex.Message}\n{ex.StackTrace}");
+                return Ok("1|OK");
+            }
 
             //更新資料庫訂單狀態邏輯
-            //更新 Supabase 資料
-            using (var client = new HttpClient())
+            try
+            {
+                //更新 Supabase 資料
+                using (var client = new HttpClient())
+                {
+                    // 要更新的欄位
+                    var payload = new { status = result?.Status?.ToLower() ?? "fail" };
+                    var json = JsonConvert.SerializeObject(payload);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    // Supabase 必要 Header
+                    client.DefaultRequestHeaders.Add("apikey", ConfigurationManager.AppSettings["Supabase_ApiKey"]);
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ConfigurationManager.AppSettings["Supabase_ApiKey"]);
+
+                    // PATCH 請求
+                    var request = new HttpRequestMessage(new HttpMethod("PATCH"), $"https://rbrltczejudsoxphrxnq.supabase.co/rest/v1/deposit?order_no=eq.{result.Result.MerchantOrderNo}")
                     {
-                        // 要更新的欄位
-                        var payload = new { status = result.Status.ToLower() };
-                        var json = JsonConvert.SerializeObject(payload);
-                        var content = new StringContent(json, Encoding.UTF8, "application/json");
+                        Content = content
+                    };
 
-                        // Supabase 必要 Header
-                        client.DefaultRequestHeaders.Add("apikey", ConfigurationManager.AppSettings["Supabase_ApiKey"]);
-                        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",ConfigurationManager.AppSettings["Supabase_ApiKey"]);
-
-                // PATCH 請求
-                var request = new HttpRequestMessage(new HttpMethod("PATCH"),$"https://rbrltczejudsoxphrxnq.supabase.co/rest/v1/deposit?order_no=eq.{result.Result.MerchantOrderNo}")
-                        {
-                            Content = content
-                        };
-
-                        var response = client.SendAsync(request).Result;
-                    }
+                    var response = client.SendAsync(request).Result;
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError($"NotifyURL 更新 Supabase 失敗: {ex.Message}\n{ex.StackTrace}");
+            }
 
             return Ok("1|OK"); // 必須回傳表示接收成功，否則藍新會重複通知
         }
