@@ -11,7 +11,7 @@ namespace GoBetGoal_BackEnd.Enums
     [JsonConverter(typeof(StringEnumConverter))]
     public enum ProductType
     {
-        [EnumMember(Value = "trial_deposit")]
+       
         Bagel =0,
 
         [EnumMember(Value = "cheat_blanket")]
@@ -20,7 +20,7 @@ namespace GoBetGoal_BackEnd.Enums
         [EnumMember(Value = "challenge")]
         TrialTemplate =2,
 
-        [EnumMember(Value = "avatar")]
+ 
         Avatar =3
     }
 }
