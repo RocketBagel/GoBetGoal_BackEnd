@@ -318,34 +318,34 @@ namespace GoBetGoal_BackEnd.Controllers
             if (string.IsNullOrEmpty(tradeInfo))
             {
                 Trace.TraceWarning("NotifyURL: No TradeInfo received");
-                return Ok("1|OK"+ "NotifyURL: No TradeInfo received");
-                //return BadRequest("No TradeInfo received.");
+                return Ok("1|OK");
+                
             }
 
             TradeInfoResponseDto result = null;
             try
             {
                 // 解析 JSON
-                //var decrypted = DecryptAES(tradeInfo);
-                //result = JsonConvert.DeserializeObject<TradeInfoResponseDto>(decrypted);
+                var decrypted = DecryptAES(tradeInfo);
+                result = JsonConvert.DeserializeObject<TradeInfoResponseDto>(decrypted);
 
-                // 解析 JSON (測試用，直接把 TradeInfo 當明文 JSON)
-                result = JsonConvert.DeserializeObject<TradeInfoResponseDto>(tradeInfo);
+                // 解析 JSON (測試用，直接把 TradeInfo 當明文JSON)
+                //result = JsonConvert.DeserializeObject<TradeInfoResponseDto>(tradeInfo);
 
                 if (result == null || result.Result == null)
                 {
                     Trace.TraceWarning("NotifyURL: No TradeInfo received");
-                    return Ok("1|OK"+ "NotifyURL: No TradeInfo received");
-                    //return BadRequest("Invalid TradeInfo format.");
+                    return Ok("1|OK");
+                   
                 }
             }
             catch (Exception ex)
             {
                 Trace.TraceError($"NotifyURL 解密/解析失敗: {ex.Message}\n{ex.StackTrace}");
-                return Ok("1|OK" + $"NotifyURL 解密/解析失敗: {ex.Message}\n{ex.StackTrace}");
+                return Ok("1|OK");
             }
 
-            //更新資料庫訂單狀態邏輯
+            //更新資料庫訂單狀態、交易成功更新貝果數邏輯
             try
             {
                 //更新 Supabase 資料
@@ -408,7 +408,7 @@ namespace GoBetGoal_BackEnd.Controllers
                             else
                             {
                                 Trace.TraceWarning($"NotifyURL: user_id 或 get_bagel 無效，userId={userId}, getBagel={getBagel}");
-                                return Ok("1|OK" + "NotifyURL: user_id 或 get_bagel 無效，userId={userId}, getBagel={getBagel}");
+                                return Ok("1|OK");
                             }
                         }
                         else
@@ -424,7 +424,7 @@ namespace GoBetGoal_BackEnd.Controllers
                 Trace.TraceError($"NotifyURL 更新 Supabase 失敗: {ex.Message}\n{ex.StackTrace}");
             }
 
-            return Ok("1|OK"+"SUCCESS"); // 必須回傳表示接收成功，否則藍新會重複通知
+            return Ok("1|OK"); // 必須回傳表示接收成功，否則藍新會重複通知
         }
 
 
