@@ -203,6 +203,7 @@
     <Compile Include="Controllers\BaseApiController.cs" />
     <Compile Include="Controllers\ChallengeController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
+    <Compile Include="Controllers\LeaderboardsController.cs" />
     <Compile Include="Controllers\PaymentSupaController.cs" />
     <Compile Include="Controllers\PostsController.cs" />
     <Compile Include="Controllers\TestController.cs" />
@@ -220,8 +221,16 @@
     <Compile Include="Migrations\202508290717026_AddNotificationAndCheatBlanketHistoryModel.Designer.cs">
       <DependentUpon>202508290717026_AddNotificationAndCheatBlanketHistoryModel.cs</DependentUpon>
     </Compile>
-    <Compile Include="Models\CheatBlanketHistory.cs" />
+    <Compile Include="Migrations\202508300824561_DeleteCheatBlanketHistoryModel.cs" />
+    <Compile Include="Migrations\202508300824561_DeleteCheatBlanketHistoryModel.Designer.cs">
+      <DependentUpon>202508300824561_DeleteCheatBlanketHistoryModel.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Models\DTOs\AchievementDto.cs" />
+    <Compile Include="Models\DTOs\LeaderboardEntryDto.cs" />
+    <Compile Include="Models\DTOs\LeaderboardUserDto.cs" />
     <Compile Include="Models\DTOs\LeaveTrialResponseDto.cs" />
+    <Compile Include="Models\DTOs\MyPersonalResultDto.cs" />
+    <Compile Include="Models\DTOs\PublicUserProfileDto.cs" />
     <Compile Include="Models\DTOs\PurchaseSuccessDto.cs" />
     <Compile Include="Controllers\TrialController.cs" />
     <Compile Include="Controllers\TrialsController.cs" />
@@ -285,6 +294,8 @@
     <Compile Include="Models\DTOs\SupabaseOrderDto.cs" />
     <Compile Include="Models\DTOs\TrialDetailDto.cs" />
     <Compile Include="Models\DTOs\TrialLikeDto.cs" />
+    <Compile Include="Models\DTOs\TrialResultDto.cs" />
+    <Compile Include="Models\DTOs\TrialResultInfoDto.cs" />
     <Compile Include="Models\DTOs\TrialStageDto.cs" />
     <Compile Include="Models\DTOs\TrialTemplateInfoDto.cs" />
     <Compile Include="Models\DTOs\TrialParticipantDto.cs" />
@@ -395,8 +406,10 @@
     <Folder Include="Views\Auth\" />
     <Folder Include="Views\Avatars\" />
     <Folder Include="Views\Challenge\" />
+    <Folder Include="Views\Leaderboards\" />
     <Folder Include="Views\Posts\" />
     <Folder Include="Views\Products\" />
+    <Folder Include="Views\Test\" />
     <Folder Include="Views\Trial\" />
     <Folder Include="Views\Users\" />
   </ItemGroup>
@@ -498,6 +511,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202508290717026_AddNotificationAndCheatBlanketHistoryModel.resx">
       <DependentUpon>202508290717026_AddNotificationAndCheatBlanketHistoryModel.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202508300824561_DeleteCheatBlanketHistoryModel.resx">
+      <DependentUpon>202508300824561_DeleteCheatBlanketHistoryModel.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
