@@ -79,8 +79,7 @@ namespace GoBetGoal_BackEnd.Models
         public virtual ICollection<Notification> ReceivedNotifications { get; set; } = new List<Notification>();
         // 這個使用者發出的所有通知
         public virtual ICollection<Notification> SentNotifications { get; set; } = new List<Notification>();
-        public virtual ICollection<CheatBlanketHistory> CheatBlanketHistories { get; set; } = new List<CheatBlanketHistory>();
-
+       
 
     }
 }
