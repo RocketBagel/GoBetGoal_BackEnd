@@ -204,6 +204,7 @@
     <Compile Include="Controllers\ChallengeController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\LeaderboardsController.cs" />
+    <Compile Include="Controllers\NotificationsController.cs" />
     <Compile Include="Controllers\PaymentSupaController.cs" />
     <Compile Include="Controllers\PostsController.cs" />
     <Compile Include="Controllers\TestController.cs" />
@@ -407,6 +408,7 @@
     <Folder Include="Views\Avatars\" />
     <Folder Include="Views\Challenge\" />
     <Folder Include="Views\Leaderboards\" />
+    <Folder Include="Views\Notifications\" />
     <Folder Include="Views\Posts\" />
     <Folder Include="Views\Products\" />
     <Folder Include="Views\Test\" />
