@@ -203,6 +203,7 @@
     <Compile Include="Controllers\BaseApiController.cs" />
     <Compile Include="Controllers\ChallengeController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
+    <Compile Include="Controllers\LeaderboardsController.cs" />
     <Compile Include="Controllers\PaymentSupaController.cs" />
     <Compile Include="Controllers\PostsController.cs" />
     <Compile Include="Controllers\TestController.cs" />
@@ -226,6 +227,7 @@
     </Compile>
     <Compile Include="Models\DTOs\AchievementDto.cs" />
     <Compile Include="Models\DTOs\LeaderboardEntryDto.cs" />
+    <Compile Include="Models\DTOs\LeaderboardUserDto.cs" />
     <Compile Include="Models\DTOs\LeaveTrialResponseDto.cs" />
     <Compile Include="Models\DTOs\MyPersonalResultDto.cs" />
     <Compile Include="Models\DTOs\PublicUserProfileDto.cs" />
@@ -404,6 +406,7 @@
     <Folder Include="Views\Auth\" />
     <Folder Include="Views\Avatars\" />
     <Folder Include="Views\Challenge\" />
+    <Folder Include="Views\Leaderboards\" />
     <Folder Include="Views\Posts\" />
     <Folder Include="Views\Products\" />
     <Folder Include="Views\Test\" />
