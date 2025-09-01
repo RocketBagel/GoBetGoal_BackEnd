@@ -294,6 +294,7 @@
     <Compile Include="Models\DTOs\RegisterStepTwoRequestDto.cs" />
     <Compile Include="Models\DTOs\AuthSuccessResponseDto.cs" />
     <Compile Include="Models\DTOs\ShareTrialPostRequestDto.cs" />
+    <Compile Include="Models\DTOs\SocialExpertDto.cs" />
     <Compile Include="Models\DTOs\StageInfoDto.cs" />
     <Compile Include="Models\DTOs\SuccessResponseDto.cs" />
     <Compile Include="Models\DTOs\SupabaseOrderDto.cs" />
