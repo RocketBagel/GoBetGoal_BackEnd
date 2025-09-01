@@ -202,6 +202,7 @@
     <Compile Include="Controllers\AvatarsController.cs" />
     <Compile Include="Controllers\BaseApiController.cs" />
     <Compile Include="Controllers\ChallengeController.cs" />
+    <Compile Include="Controllers\FriendsController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\LeaderboardsController.cs" />
     <Compile Include="Controllers\NotificationsController.cs" />
@@ -227,6 +228,7 @@
       <DependentUpon>202508300824561_DeleteCheatBlanketHistoryModel.cs</DependentUpon>
     </Compile>
     <Compile Include="Models\DTOs\AchievementDto.cs" />
+    <Compile Include="Models\DTOs\FriendInfoDto.cs" />
     <Compile Include="Models\DTOs\LeaderboardEntryDto.cs" />
     <Compile Include="Models\DTOs\LeaderboardUserDto.cs" />
     <Compile Include="Models\DTOs\LeaveTrialResponseDto.cs" />
@@ -410,6 +412,7 @@
     <Folder Include="Views\Auth\" />
     <Folder Include="Views\Avatars\" />
     <Folder Include="Views\Challenge\" />
+    <Folder Include="Views\Friends\" />
     <Folder Include="Views\Leaderboards\" />
     <Folder Include="Views\Notifications\" />
     <Folder Include="Views\Posts\" />
