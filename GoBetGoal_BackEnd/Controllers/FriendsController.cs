@@ -56,12 +56,15 @@ namespace GoBetGoal_BackEnd.Controllers
                 // 找出目前使用的頭像
                 var currentAvatar = friend.UserAvatars.FirstOrDefault(ua => ua.IsCurrent);
 
-                // 試煉參與數
-                int trialCount = _context.TrialParticipants
-                    .Count(tp => tp.ParticipantId == friend.Id || tp.InviteeId == friend.Id);
+                // 試煉參與總數
+                int totalTrialCount = _context.TrialParticipants
+                    .Count(ttc => ttc.ParticipantId == friend.Id || ttc.InviteeId == friend.Id);
 
-                // 發文數
-                int postCount = _context.Posts
+                // 成功試煉總數
+                int successTrialCount = _context.TrialParticipants.Count(stc => (stc.Trial.TrialStatus == Status.perfect||stc.Trial.TrialStatus == Status.pass) && (stc.ParticipantId == friend.Id || stc.InviteeId == friend.Id));
+
+                // 發文總數
+                int totalpostCount = _context.Posts
                     .Count(p => p.UserId == friend.Id);
 
                 var friendInfoDto = new FriendInfoDto
@@ -69,8 +72,9 @@ namespace GoBetGoal_BackEnd.Controllers
                     Id = friend.Id,
                     NickName = friend.NickName,
                     AvatarUrl = currentAvatar?.Avatar?.AvatarImagePath,
-                    TrialCount = trialCount,
-                    PostCount = postCount
+                    TotalTrialCount = totalTrialCount,
+                    SuccessTrialCount = successTrialCount,
+                    TotalPostCount = totalpostCount
                 };
 
                 friendDtos.Add(friendInfoDto);

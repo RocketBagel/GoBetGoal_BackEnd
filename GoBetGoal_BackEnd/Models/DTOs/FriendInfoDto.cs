@@ -13,8 +13,10 @@ namespace GoBetGoal_BackEnd.Models.DTOs
        
         public string AvatarUrl { get; set; }
 
-        public int TrialCount { get; set; } 
+        public int TotalTrialCount { get; set; }
 
-        public int PostCount { get; set; }
+        public int SuccessTrialCount { get; set; }
+
+        public int TotalPostCount { get; set; }
     }
 }
