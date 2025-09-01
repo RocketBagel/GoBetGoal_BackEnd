@@ -105,6 +105,72 @@ namespace GoBetGoal_BackEnd.Controllers
             return Ok(top10);
         }
 
+        [HttpGet]
+        [Route("api/leaderboards/social-experts")]
+        [AllowAnonymous]
+        public IHttpActionResult GetSocialExpertsLeaderboard()
+        {
+            // 步驟 1: 預先載入需要的關聯資料，並將所有使用者撈到記憶體中
+            var allUsers = _db.Users
+                .Include(u => u.UserAvatars.Select(ua => ua.Avatar))
+                .ToList();
+
+            // 步驟 2: 建立一個列表，用來存放每位使用者的計算結果
+            var userStats = new List<SocialExpertDto>();
+
+            // 步驟 3: 使用 foreach 迴圈，一個一個地為使用者計算分數
+            foreach (var user in allUsers)
+            {
+                // a. 計算這位使用者所有貼文被按讚的總數
+                int totalLikes = _db.PostLikes.Count(like => like.Post.UserId == user.Id);
+
+                // b. 計算這位使用者成功完成的試煉總數
+                int successfulTrials = _db.TrialParticipants.Count(tp =>
+                    tp.InviteeId == user.Id &&
+                    tp.Trial.TrialStatus == Status.pass || tp.Trial.TrialStatus == Status.perfect); 
+
+                // c. 將計算結果和使用者資訊，存入一個新的 DTO 物件
+                userStats.Add(new SocialExpertDto
+                {
+                    LikedPostsCount = totalLikes,
+                    SuccessfulTrialCount = successfulTrials,
+                    UserInfo = new PublicUserProfileDto
+                    {
+                        UserId = user.Id,
+                        NickName = user.NickName,
+                        CurrentAvatarUrl = user.UserAvatars.FirstOrDefault(ua => ua.IsCurrent)?.Avatar?.AvatarImagePath
+                    }
+                });
+            }
+
+            // 步驟 4: 對計算完畢的列表進行排序
+            var sortedLeaderboard = userStats
+                .OrderByDescending(s => s.LikedPostsCount) // 主要規則：按讚數越多的排前面
+                .ThenByDescending(s=>s.SuccessfulTrialCount)
+                .ToList();
+
+            // 步驟 5: 賦予名次 (處理同名次)
+            int rank = 0;
+            int lastScore = -1;
+
+            for (int i = 0; i < sortedLeaderboard.Count; i++)
+            {
+                var currentEntry = sortedLeaderboard[i];
+
+                if (currentEntry.LikedPostsCount != lastScore)
+                {
+                    rank = i + 1;
+                }
+                currentEntry.Rank = rank;
+                lastScore = currentEntry.LikedPostsCount;
+            }
+
+            // 步驟 6: 只取前 3 名
+            var top3 = sortedLeaderboard.Take(3).ToList();
+
+            return Ok(top3);
+        }
+
         // 釋放資料庫連線資源
         protected override void Dispose(bool disposing)
         {
