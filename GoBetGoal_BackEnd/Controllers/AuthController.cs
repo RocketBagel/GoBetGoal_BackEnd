@@ -232,7 +232,7 @@ namespace GoBetGoal_BackEnd.Controllers
             }
 
             // 無論 user 是否存在，都回傳相同的成功訊息
-            return Ok(new SuccessResponseDto { Message = "如果您的 Email 存在於我們的系統中，一封包含重設說明的郵件將會寄送到您的信箱。" });
+            return Ok(new SuccessResponseDto { Message = "若 Email 存在，重設說明已寄出。" });
         }
 
 
