@@ -230,6 +230,7 @@
     <Compile Include="Models\DTOs\AchievementDto.cs" />
     <Compile Include="Models\DTOs\ForgotPasswordRequestDto.cs" />
     <Compile Include="Models\DTOs\FriendInfoDto.cs" />
+    <Compile Include="Models\DTOs\InviteFriendDto.cs" />
     <Compile Include="Models\DTOs\LeaderboardEntryDto.cs" />
     <Compile Include="Models\DTOs\LeaderboardUserDto.cs" />
     <Compile Include="Models\DTOs\LeaveTrialResponseDto.cs" />
@@ -367,7 +368,6 @@
     <Content Include="Scripts\bootstrap.js" />
     <Content Include="Scripts\bootstrap.min.js" />
     <Content Include="Connect.config" />
-    <Content Include="NewebPayKeys.config" />
     <Content Include="Areas\HelpPage\Views\Web.config" />
     <Content Include="Areas\HelpPage\Views\Shared\_Layout.cshtml" />
     <Content Include="Areas\HelpPage\Views\Help\ResourceModel.cshtml" />
