@@ -21,19 +21,32 @@ namespace GoBetGoal_BackEnd.Security
         /// </summary>
         /// <param name="id">會員id</param>
         /// <returns>JwtToken</returns>
-        public string GenerateToken(User user)
+        public string GenerateToken(User user, int? expiresInMinutes=null)
         {
             // 自訂字串，驗證用，用來加密送出的 key (放在 Web.config 的 appSettings)
             //string secretKey = WebConfigurationManager.AppSettings["TokenKey"]; // 從 appSettings 取出
             //string secretKey = "ILoveCoding";
             //var user = db.User.Find(id); // 進 DB 取出想要夾帶的基本資料 //<驗證帳號密碼成功後就不開db>
 
+            DateTime expirationTime;
+
+            if (expiresInMinutes.HasValue)
+            {
+                // 如果有提供分鐘數（例如，用於密碼重設），就使用該時效
+                expirationTime = DateTime.Now.AddMinutes(expiresInMinutes.Value);
+            }
+            else
+            {
+                // 如果未提供，就使用預設的長時效（例如 3 個月）
+                expirationTime = DateTime.Now.AddMonths(3);
+            }
+
             // payload作法1 需透過 token 傳遞的資料 (可夾帶常用且不重要的資料)
             var payload = new Dictionary<string, object>
             {
                 // --- 必備的核心金鑰 ---
                 { "Id", user.Id },
-                { "Exp", DateTime.Now.AddMonths(3).ToString() }, // JwtToken 時效設定 
+                { "Exp", expirationTime.ToString() }, // JwtToken 時效設定 
                 // --- 建議加入的標準金鑰 ---
                 { "iss", "GoBetGoalApi" }, // 發行者
                 //{ "aud", "GoBetGoalApi" }, // 接收者

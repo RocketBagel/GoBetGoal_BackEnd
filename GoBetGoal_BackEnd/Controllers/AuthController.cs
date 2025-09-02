@@ -1,11 +1,13 @@
 ﻿using GoBetGoal_BackEnd.Models;
 using GoBetGoal_BackEnd.Models.DTOs;
 using GoBetGoal_BackEnd.Security;
+using GoBetGoal_BackEnd.Services;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity.Validation;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using System.Web.Http;
 
 namespace GoBetGoal_BackEnd.Controllers
@@ -186,6 +188,100 @@ namespace GoBetGoal_BackEnd.Controllers
 
             });
         }
+
+
+        [HttpPost]
+        [Route("api/auth/forgot-password")]
+        [AllowAnonymous]
+        public async Task<IHttpActionResult> ForgotPassword(ForgotPasswordRequestDto model)
+        {
+            //if (!ModelState.IsValid)
+            //{
+            //    return BadRequest(ModelState);
+            //}
+
+            string normalizedEmail = model.Email.ToLowerInvariant();
+            var user = _db.Users.FirstOrDefault(u => u.Email == normalizedEmail);
+
+            if (user != null)
+            {
+                try
+                {
+                    // --- *** 核心修改點 *** ---
+
+                    // a. 產生一個「有時效性」且「用途特定」的重設密碼 Token
+                    var jwtAuthUtil = new JwtAuthUtility();
+                    // 我們可以重複使用 GenerateToken，但提供一個不同的時效
+                    // 或者在 JwtAuthUtility 中建立一個專門的方法 GeneratePasswordResetToken(user, expiresInMinutes: 15)
+                    string passwordResetToken = jwtAuthUtil.GenerateToken(user, expiresInMinutes: 15); // 假設 GenerateToken 可接受時效參數
+
+                    // b. 建立前端重設密碼頁面的完整 URL
+                    //    注意： 應替換為您前端的真實網址
+                    string resetLink = $"https://gobetgoal.vercel.app/reset-password?token={passwordResetToken}";
+
+                    // c. 呼叫 EmailService 來寄送這封包含連結的郵件
+                    var emailService = new EmailService();
+                    await emailService.SendPasswordResetLinkEmailAsync(user.Email, resetLink);
+
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"忘記密碼流程發生錯誤: {ex}");
+                    // 即使出錯，也要回傳成功，避免資訊洩漏
+                }
+            }
+
+            // 無論 user 是否存在，都回傳相同的成功訊息
+            return Ok(new SuccessResponseDto { Message = "若 Email 存在，重設說明已寄出。" });
+        }
+
+        /// <summary>
+        /// 使用重設權杖來設定新密碼
+        /// </summary>
+        [HttpPost]
+        [Route("api/auth/reset-password")]
+        [AllowAnonymous] // 此 API 也是公開的
+        public IHttpActionResult ResetPassword(ResetPasswordRequestDto model)
+        {
+            //if (!ModelState.IsValid)
+            //{
+            //    return BadRequest(ModelState);
+            //}
+
+            var jwtAuthUtil = new JwtAuthUtility();
+            var payload = jwtAuthUtil.GetPayload(model.Token);
+
+            // 1. 驗證 Token 是否有效且未過期
+            if (payload == null || jwtAuthUtil.IsTokenExpired(payload["Exp"].ToString()))
+            {
+                var error = new ErrorResponseDto { ErrorCode = "INVALID_OR_EXPIRED_TOKEN", Message = "此重設連結無效或已過期，請重新申請。" };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
+            // 2. 從 payload 中解析出 UserId
+            if (!Guid.TryParse(payload["Id"].ToString(), out Guid userId))
+            {
+                var error = new ErrorResponseDto { ErrorCode = "INVALID_TOKEN_PAYLOAD", Message = "此重設連結無效或已過期，請重新申請。" };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
+            // 3. 找出使用者並更新密碼
+            var userToUpdate = _db.Users.Find(userId);
+            if (userToUpdate == null)
+            {
+                // 即使找不到使用者，也回傳一個模糊的錯誤，避免資訊洩漏
+                var error = new ErrorResponseDto { ErrorCode = "INVALID_OR_EXPIRED_TOKEN", Message = "此重設連結無效或已過期，請重新申請。" };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
+            userToUpdate.PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.NewPassword);
+            userToUpdate.UpdatedAt = DateTime.Now;
+
+            _db.SaveChanges();
+
+            return Ok(new SuccessResponseDto { Message = "您的密碼已成功重設，現在可以使用新密碼登入了。" });
+        }
+
 
         // --- 新增方法開始 ---
 

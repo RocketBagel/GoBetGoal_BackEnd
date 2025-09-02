@@ -228,6 +228,7 @@
       <DependentUpon>202508300824561_DeleteCheatBlanketHistoryModel.cs</DependentUpon>
     </Compile>
     <Compile Include="Models\DTOs\AchievementDto.cs" />
+    <Compile Include="Models\DTOs\ForgotPasswordRequestDto.cs" />
     <Compile Include="Models\DTOs\FriendInfoDto.cs" />
     <Compile Include="Models\DTOs\InviteFriendDto.cs" />
     <Compile Include="Models\DTOs\LeaderboardEntryDto.cs" />
@@ -294,6 +295,7 @@
     <Compile Include="Models\DTOs\RegisterStepOneRequestDto.cs" />
     <Compile Include="Models\DTOs\RegisterStepTwoRequestDto.cs" />
     <Compile Include="Models\DTOs\AuthSuccessResponseDto.cs" />
+    <Compile Include="Models\DTOs\ResetPasswordRequestDto.cs" />
     <Compile Include="Models\DTOs\ShareTrialPostRequestDto.cs" />
     <Compile Include="Models\DTOs\SocialExpertDto.cs" />
     <Compile Include="Models\DTOs\StageInfoDto.cs" />
@@ -333,6 +335,7 @@
     <Compile Include="Services\ChallengeDbService.cs" />
     <Compile Include="Services\ChallengeHelper.cs" />
     <Compile Include="Services\CreateTrialsService.cs" />
+    <Compile Include="Services\EmailService.cs" />
     <Compile Include="Services\OpenAIHttpClientService.cs" />
     <Compile Include="Services\Verifiers\CollectiveVerifier.cs" />
     <Compile Include="Services\Verifiers\IVerifier.cs" />
