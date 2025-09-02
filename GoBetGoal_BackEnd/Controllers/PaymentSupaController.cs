@@ -35,7 +35,7 @@ namespace GoBetGoal_BackEnd.Controllers
         [AllowAnonymous]
         [HttpPost]
         [Route("api/payments/create")]
-        public async Task<IHttpActionResult> CreatePayment(PaymentRequestDto request)
+        public async Task<IHttpActionResult> CreatePayment([FromBody] PaymentRequestDto request)
         {
             //發送給supabase 建立新訂單資料
             // 1. 先建立訂單到 Supabase (沒有 order_no)
@@ -196,7 +196,7 @@ namespace GoBetGoal_BackEnd.Controllers
                     if (tradeInfo == "test")
                     {
                         decrypted = "{\"Status\":\"SUCCESS\",\"Message\":\"付款成功\",\"Result\":{\"MerchantOrderNo\":\"12345\",\"Amt\":1000}}";
-
+                    
                     }
                     else
                     {
