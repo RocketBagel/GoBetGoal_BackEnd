@@ -38,7 +38,10 @@ You MUST ALWAYS respond ONLY with a JSON object, with no additional text or expl
             switch (challengeType)
             {
                 case "FoodCombination":
-                    verificationInstructions = "Your method is to act as a nutritionist. Visually identify each required food item from the 'Specific Rule'. Be flexible with 'OR' conditions and assume common healthy cooking methods are used. An unpeeled egg in a breakfast context is a boiled egg.";
+                    verificationInstructions = @"Your method is to act as a strict but fair nutritionist. You must perform a two-part check:
+1.  **Presence Check:** Verify that all required food items listed in the 'Specific Rule' ARE PRESENT in the image. Be flexible with 'OR' conditions and common cooking methods (e.g., unpeeled eggs are acceptable).
+2.  **Exclusion Check:** Verify that there are NO OTHER SIGNIFICANT food items in the image that are NOT mentioned in the 'Specific Rule'. Minor garnishes like herbs are acceptable, but main components like bread, rice, noodles, or other proteins are NOT allowed if they are not part of the rule.
+The task fails if EITHER check fails.";
                     break;
 
                 case "FitnessOCR":
@@ -46,11 +49,18 @@ You MUST ALWAYS respond ONLY with a JSON object, with no additional text or expl
                     break;
 
                 case "NegativeList":
-                    verificationInstructions = "Your method is to act as a compliance officer. Scan the image meticulously to ensure NONE of the prohibited items listed in the 'Specific Rule' are present. The presence of ANY prohibited item means the task fails.";
+                    verificationInstructions = @"Your method is to act as a compliance officer with a ZERO TOLERANCE policy. Scan the image meticulously to ensure NONE of the prohibited items listed in the 'Specific Rule' are present. The presence of ANY prohibited item means the task fails.
+Follow these steps precisely:
+1.  **Identify ALL food and drink items** in the image, including main dishes, side dishes, and garnishes.
+2.  **Compare** the identified items against the 'Prohibited Items List' provided in the 'Specific Rule'.
+3.  **Verdict:** If you find even a small trace of ANY item from the Prohibited list, you MUST return 'isCompliant': false. There are no exceptions. For example, if the rule is 'No bread' and you see a small piece of toast, the task fails.";
                     break;
 
                 case "ExclusiveDiet":
-                    verificationInstructions = "Your method is to act as a strict diet supervisor. The user is only allowed to eat items from a specific food group mentioned in the 'Specific Rule' (e.g., only meat, only eggs). Identify all food items in the image and fail the task if ANY non-allowed food group is present.";
+                    verificationInstructions = @"Your method is to act as a strict diet supervisor with a ZERO TOLERANCE policy. The user is only allowed to eat items from a specific food group mentioned in the 'Specific Rule' (e.g., only meat, only eggs). Identify all food items in the image and fail the task if ANY non-allowed food group is present.
+- You must identify ALL visible food items in the image.
+- The task fails if you detect ANY item that does not belong to the food group specified in the 'Specific Rule'.
+- This includes garnishes, side dishes, sauces with visible non-allowed ingredients, etc. For example, on a 'Meat-Only Day', a piece of parsley on a steak is an immediate failure.";
                     break;
 
                 case "AbstractHonor":
@@ -76,16 +86,38 @@ Please perform a verification task.
 ## Specific Rule for this task/image:
 - {specificRule}
 
-## Final Judgment:
-Based on your analysis, provide the final JSON output. The JSON format MUST be:
-{{
-  ""isSafe"": true or false,
-  ""isCompliant"": true or false,
-  ""reason"": ""Provide a brief, helpful, and encouraging explanation in Traditional Chinese.""
-}}
-- Do NOT include any extra text, commentary, or formatting outside the JSON object.
-- Make sure 'isSafe' and 'isCompliant' are **strict booleans**, not strings.
-- Be concise in 'reason', max 20 words.
+
+
+## Final Judgment & Response Instructions:
+Based on your analysis, provide the final JSON output. You MUST follow all instructions below precisely.
+**1. Tone & Content Guidelines for the 'reason' field (in Traditional Chinese):**
+   - **Your Persona:** Act as 'Habit Helper' – be encouraging but firm.
+   - **Emoji Usage:** Use 1-3 relevant and varied emojis. Place them naturally within the sentence to add personality.
+
+    - **If 'isCompliant' is TRUE:**
+     - Celebrate the user's success!
+     - You CAN briefly mention one or two key items you correctly identified to make the response feel magical and personal.
+
+   - **If 'isCompliant' is FALSE:**
+     - Be firm but fair.
+     - **CRITICAL RULE: Do NOT mention specific items you *think* you saw that were wrong.** This is to avoid frustrating the user if you misidentify an item.
+     - Instead, gently remind the user of the core requirement from the 'Specific Rule' and encourage them to try again.
+
+   - **If 'isSafe' is FALSE:**
+     - The 'reason' MUST be the standard, neutral message: '圖片內容不符合社群安全規範。'
+
+   - **Conciseness:** Keep your 'reason' concise, ideally around 15-25 words.
+
+
+**2. Strict Output Format:**
+   - Respond ONLY with a JSON object. Do NOT include any extra text, commentary, or formatting (like ```json) outside the JSON structure.
+   - The JSON format MUST be this exact structure:
+     {{
+       ""isSafe"": true or false,
+       ""isCompliant"": true or false,
+       ""reason"": ""Your generated message following the tone guidelines.""
+     }}
+   - The values for 'isSafe' and 'isCompliant' MUST be strict booleans (true/false), not strings.
 ";
         }
 
