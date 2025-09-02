@@ -15,7 +15,7 @@ namespace GoBetGoal_BackEnd.Controllers
     {
         private readonly Context _context = new Context();
 
-        //讀取全部好友
+        //取得當前使用者全部好友
         [HttpGet]
         [Route("api/friends")]
         public IHttpActionResult GetAllFriends()
@@ -81,6 +81,78 @@ namespace GoBetGoal_BackEnd.Controllers
             }
 
             return Ok(friendDtos);
+        }
+
+
+        //新增好友邀請
+        [HttpPost]
+        [Route("api/friends/invite")]
+        public IHttpActionResult InviteFriend([FromBody] InviteFriendDto request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            //取得當前使用者 ID 
+            Guid currentUserId = GetCurrentUserId();
+            var user = _context.Users.Find(currentUserId);
+            if (user == null)
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "USER_NOT_FOUND",
+                    Message = "指定的使用者不存在。"
+                };
+                return Content(HttpStatusCode.NotFound, error);
+            }
+
+            //被邀請人是否存在
+            if (!Guid.TryParse(request.InviteeId, out Guid inviteeGuid))
+            {
+                return BadRequest("InviteeId 格式錯誤。");
+            }
+
+            var invitee = _context.Users.Find(inviteeGuid);
+            if (invitee == null)
+            {
+                return Content(HttpStatusCode.NotFound, new ErrorResponseDto
+                {
+                    ErrorCode = "INVITEE_NOT_FOUND",
+                    Message = "被邀請者不存在。"
+                });
+            }
+
+            //是否重複邀請 (或已經是好友)
+            bool alreadyExists = _context.FriendsRelationships.Any(fr =>
+                (fr.UserId == currentUserId && fr.InviteeId == inviteeGuid) ||
+                (fr.UserId == inviteeGuid && fr.InviteeId == currentUserId));
+
+            if (alreadyExists) // 409
+            {
+                return Content(HttpStatusCode.Conflict, new ErrorResponseDto
+                {
+                    ErrorCode = "FRIEND_INVITE_ALREADY_EXISTS",
+                    //Message = "好友邀請已存在或已經是好友。"
+                }); 
+            }
+
+            var newFriendInvitation = new FriendsRelationship
+            {
+                UserId = currentUserId,
+                InviteeId = inviteeGuid,
+                Note = request.Note,
+                Status = Status.pending,
+                InviteAt = DateTime.Now,
+
+            };
+
+            _context.FriendsRelationships.Add(newFriendInvitation);
+            _context.SaveChanges();
+
+
+            return Ok("已發出邀請");
+
         }
 
 
