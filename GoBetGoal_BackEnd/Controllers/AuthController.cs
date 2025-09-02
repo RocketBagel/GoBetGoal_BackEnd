@@ -235,6 +235,52 @@ namespace GoBetGoal_BackEnd.Controllers
             return Ok(new SuccessResponseDto { Message = "若 Email 存在，重設說明已寄出。" });
         }
 
+        /// <summary>
+        /// 使用重設權杖來設定新密碼
+        /// </summary>
+        [HttpPost]
+        [Route("api/auth/reset-password")]
+        [AllowAnonymous] // 此 API 也是公開的
+        public IHttpActionResult ResetPassword(ResetPasswordRequestDto model)
+        {
+            //if (!ModelState.IsValid)
+            //{
+            //    return BadRequest(ModelState);
+            //}
+
+            var jwtAuthUtil = new JwtAuthUtility();
+            var payload = jwtAuthUtil.GetPayload(model.Token);
+
+            // 1. 驗證 Token 是否有效且未過期
+            if (payload == null || jwtAuthUtil.IsTokenExpired(payload["Exp"].ToString()))
+            {
+                var error = new ErrorResponseDto { ErrorCode = "INVALID_OR_EXPIRED_TOKEN", Message = "此重設連結無效或已過期，請重新申請。" };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
+            // 2. 從 payload 中解析出 UserId
+            if (!Guid.TryParse(payload["Id"].ToString(), out Guid userId))
+            {
+                var error = new ErrorResponseDto { ErrorCode = "INVALID_TOKEN_PAYLOAD", Message = "此重設連結無效或已過期，請重新申請。" };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
+            // 3. 找出使用者並更新密碼
+            var userToUpdate = _db.Users.Find(userId);
+            if (userToUpdate == null)
+            {
+                // 即使找不到使用者，也回傳一個模糊的錯誤，避免資訊洩漏
+                var error = new ErrorResponseDto { ErrorCode = "INVALID_OR_EXPIRED_TOKEN", Message = "此重設連結無效或已過期，請重新申請。" };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
+            userToUpdate.PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.NewPassword);
+            userToUpdate.UpdatedAt = DateTime.Now;
+
+            _db.SaveChanges();
+
+            return Ok(new SuccessResponseDto { Message = "您的密碼已成功重設，現在可以使用新密碼登入了。" });
+        }
 
 
         // --- 新增方法開始 ---
