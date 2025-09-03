@@ -55,15 +55,29 @@ namespace GoBetGoal_BackEnd.Controllers
                 );
 
                 // --- 5. 呼叫 OpenAI 服務 ---
-                string rawAiResponse = await OpenAIHttpClientService.AnalyzeAsync(
+                // --- 【關鍵修正 #1】接收完整的 AiServiceResponse 物件 ---
+                // 我們不再用 string 去接，而是用我們設計好的「工作報告」模型
+                AiServiceResponse aiServiceResponse = await OpenAIHttpClientService.AnalyzeAsync(
                     new List<string> { imageUrl },
                     "gpt-4o",
                     systemPrompt,
                     userPrompt
                 );
 
-                // --- 6. 解析 AI 回應並處理結果 ---
-                var aiResult = ChallengeHelper.ParseAIResponse<AIVerificationResult>(rawAiResponse);
+                // --- 【關鍵修正 #2】將 Token 數印在後端，供您簡報使用 ---
+                // 當您在偵錯模式下執行時，這行日誌會出現在 Visual Studio 的「輸出」視窗
+                // 新版 - 顯示完整的輸入、輸出、總計
+                System.Diagnostics.Debug.WriteLine(
+                    $"AI VERIFICATION LOG - ImageUrl: {imageUrl}, " +
+                    $"Prompt Tokens: {aiServiceResponse.Usage.PromptTokens}, " +
+
+                    $"Completion Tokens: {aiServiceResponse.Usage.CompletionTokens}, " +
+                    $"Total Tokens: {aiServiceResponse.Usage.TotalTokens}"
+                );
+
+                // --- 【關鍵修正 #3】從工作報告中，只取出 AI 的文字回覆來進行解析 ---
+                string rawAiMessageContent = aiServiceResponse.MessageContent;
+                var aiResult = ChallengeHelper.ParseAIResponse<AIVerificationResult>(rawAiMessageContent);
 
                 var imageResult = new ImageResult
                 {
@@ -87,5 +101,7 @@ namespace GoBetGoal_BackEnd.Controllers
             // --- 8. 回傳結果 ---
             return Ok(response);
         }
+
+
     }
 }
