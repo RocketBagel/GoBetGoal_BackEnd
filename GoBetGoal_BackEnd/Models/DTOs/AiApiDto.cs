@@ -136,6 +136,43 @@ namespace GoBetGoal_BackEnd.Models.DTOs
         public string DetectedItems { get; set; }
     }
 
+    /// <summary>
+    /// OpenAI API 回傳的 token 用量物件 (官方收據)
+    /// </summary>
+    public class UsageData
+    {
+        [JsonProperty("prompt_tokens")]
+        public int PromptTokens { get; set; }
+
+        [JsonProperty("completion_tokens")]
+        public int CompletionTokens { get; set; }
+
+        [JsonProperty("total_tokens")]
+        public int TotalTokens { get; set; }
+    }
+
+    /// <summary>
+    /// 我們 OpenAIHttpClientService 的標準化回傳格式 (內部工作報告)
+    /// </summary>
+    public class AiServiceResponse
+    {
+        public string MessageContent { get; set; }
+        public UsageData Usage { get; set; }
+        public bool IsSuccess { get; set; }
+    }
+
+    /// <summary>
+    /// 【升級版】用於解析 OpenAI 完整回應的模型，現在包含了 Usage
+    /// </summary>
+    public class OpenAIChatResponse
+    {
+        [JsonProperty("choices")]
+        public List<ResponseChoice> Choices { get; set; }
+
+        [JsonProperty("usage")]
+        public UsageData Usage { get; set; }
+    }
+
     //public class AICollectiveDetectionResult
     //{
     //    [JsonProperty("detected_matching_foods")]
@@ -155,7 +192,7 @@ namespace GoBetGoal_BackEnd.Models.DTOs
     public class RequestMessage { [JsonProperty("role")] public string Role { get; set; } [JsonProperty("content")] public List<RequestContent> Content { get; set; } }
     public class RequestContent { [JsonProperty("type")] public string Type { get; set; } [JsonProperty("text", NullValueHandling = NullValueHandling.Ignore)] public string Text { get; set; } [JsonProperty("image_url", NullValueHandling = NullValueHandling.Ignore)] public RequestImageUrl ImageUrl { get; set; } }
     public class RequestImageUrl { [JsonProperty("url")] public string Url { get; set; } }
-    public class OpenAIChatResponse { [JsonProperty("choices")] public List<ResponseChoice> Choices { get; set; } }
+    //public class OpenAIChatResponse { [JsonProperty("choices")] public List<ResponseChoice> Choices { get; set; } }
     public class ResponseChoice { [JsonProperty("message")] public ResponseMessage Message { get; set; } }
     public class ResponseMessage { [JsonProperty("role")] public string Role { get; set; } [JsonProperty("content")] public JToken Content { get; set; } }
 

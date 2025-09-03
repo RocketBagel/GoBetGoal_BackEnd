@@ -337,7 +337,6 @@
     <Compile Include="Services\CreateTrialsService.cs" />
     <Compile Include="Services\EmailService.cs" />
     <Compile Include="Services\OpenAIHttpClientService.cs" />
-    <Compile Include="Services\Verifiers\CollectiveVerifier.cs" />
     <Compile Include="Services\Verifiers\IVerifier.cs" />
     <Compile Include="Services\Verifiers\PerImageVerifier.cs" />
   </ItemGroup>
