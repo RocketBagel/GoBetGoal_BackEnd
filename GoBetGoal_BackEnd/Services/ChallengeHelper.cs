@@ -16,6 +16,7 @@ namespace GoBetGoal_BackEnd.Services
         /// <returns>一個包含核心指令的字串。</returns>
         public static string GetMasterSystemPrompt()
         {
+            // 193 token
             return @"
 You are a helpful and fair AI health coach named 'Habit Helper' for a health and wellness platform. Your personality is fair, helpful, and encouraging, but you are also a meticulous and strict judge when it comes to verifying user-submitted challenge tasks.
 
@@ -38,18 +39,22 @@ You MUST ALWAYS respond ONLY with a JSON object, with no additional text or expl
             switch (challengeType)
             {
                 case "FoodCombination":
+                    // 143 token
                     verificationInstructions = @"Your method is to act as a strict but fair nutritionist. You must perform a two-part check:
 1.  **Presence Check:** Verify that all required food items listed in the 'Specific Rule' ARE PRESENT in the image. Be flexible with 'OR' conditions and common cooking methods (e.g., unpeeled eggs are acceptable).
 2.  **Exclusion Check:** Verify that there are NO OTHER SIGNIFICANT food items in the image that are NOT mentioned in the 'Specific Rule'. Minor garnishes like herbs are acceptable, but main components like bread, rice, noodles, or other proteins are NOT allowed if they are not part of the rule.
 The task fails if EITHER check fails.";
                     break;
-
+                    // 53 token
                 case "FitnessOCR":
                     verificationInstructions = "Your method is to act as a data verifier. Perform OCR on the image to find numbers on a digital display (like a treadmill or smartwatch). The extracted value (time or steps) must be equal to or greater than the value specified in the 'Specific Rule'.";
                     break;
-
+                    // 167 token
                 case "NegativeList":
-                    verificationInstructions = @"Your method is to act as a compliance officer with a ZERO TOLERANCE policy. Scan the image meticulously to ensure NONE of the prohibited items listed in the 'Specific Rule' are present. The presence of ANY prohibited item means the task fails.
+                    verificationInstructions = @"Your method is to act as a two-step compliance officer with a ZERO TOLERANCE policy.
+**Step 1: Relevance Check.** First, you MUST determine if the image is relevant to the task's domain (food or drink). If not, you MUST return 'isCompliant': false with a reason explaining it's irrelevant.
+
+**Step 2: Contraband Scan.**  Scan the image meticulously to ensure NONE of the prohibited items listed in the 'Specific Rule' are present. The presence of ANY prohibited item means the task fails.
 Follow these steps precisely:
 1.  **Identify ALL food and drink items** in the image, including main dishes, side dishes, and garnishes.
 2.  **Compare** the identified items against the 'Prohibited Items List' provided in the 'Specific Rule'.
@@ -57,7 +62,10 @@ Follow these steps precisely:
                     break;
 
                 case "ExclusiveDiet":
-                    verificationInstructions = @"Your method is to act as a strict diet supervisor with a ZERO TOLERANCE policy. The user is only allowed to eat items from a specific food group mentioned in the 'Specific Rule' (e.g., only meat, only eggs). Identify all food items in the image and fail the task if ANY non-allowed food group is present.
+                    verificationInstructions = @"Your method is to act as a two-step strict diet supervisor with a ZERO TOLERANCE policy.
+**Step 1: Relevance Check.** First, you MUST determine if the image is relevant to the task's domain (food or drink). If not, you MUST return 'isCompliant': false.
+
+**Step 2: Exclusivity Check.** The user is only allowed to eat items from a specific food group mentioned in the 'Specific Rule' (e.g., only meat, only eggs). Identify all food items in the image and fail the task if ANY non-allowed food group is present.
 - You must identify ALL visible food items in the image.
 - The task fails if you detect ANY item that does not belong to the food group specified in the 'Specific Rule'.
 - This includes garnishes, side dishes, sauces with visible non-allowed ingredients, etc. For example, on a 'Meat-Only Day', a piece of parsley on a steak is an immediate failure.";
@@ -74,6 +82,7 @@ Follow these steps precisely:
             }
 
             // --- 動態 User Prompt 範本 ---
+            // 441 
             return $@"
 Please perform a verification task.
 

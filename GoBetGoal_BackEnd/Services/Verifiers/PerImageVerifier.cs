@@ -1,6 +1,7 @@
 ﻿using GoBetGoal_BackEnd.Models;
 using GoBetGoal_BackEnd.Models.DTOs;
 using Newtonsoft.Json;
+using Swashbuckle.Swagger;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -53,13 +54,19 @@ namespace GoBetGoal_BackEnd.Services.Verifiers
 
 
                 // 將 System Prompt 和 User Prompt 一起傳給 AI
-                string rawAiResponse = await OpenAIHttpClientService.AnalyzeAsync(
-                               new List<string> { imageUrl },// 一次只傳一張圖
-                               "gpt-4o",
-                               systemPrompt,
-                               userPrompt
-                           );
-                var result = ChallengeHelper.ParseAIResponse<AIVerificationResult>(rawAiResponse);
+                // 現在我們會收到一個包含 MessageContent 和 Usage 的完整物件
+                AiServiceResponse aiResponse = await OpenAIHttpClientService.AnalyzeAsync(
+                    new List<string> { imageUrl }, "gpt-4o", systemPrompt, userPrompt);
+
+                // --- 【使用數據】 ---
+                // 1. 在後端記錄 Token 用量，用於成本分析和簡報展示
+                //    這行程式碼會將 Token 數印在 Visual Studio 的「輸出」視窗中
+                System.Diagnostics.Debug.WriteLine($"AI VERIFICATION LOG - StageId: {_stage.Id}, ImageUrl: {imageUrl}, Total Tokens: {aiResponse.Usage.TotalTokens}");
+
+                // 2. 只取出 messageContent 進行後續的業務邏輯處理
+                string rawAiResponseString = aiResponse.MessageContent;
+                var result = ChallengeHelper.ParseAIResponse<AIVerificationResult>(rawAiResponseString);
+
 
                 if (!result.IsSafe)
                 {

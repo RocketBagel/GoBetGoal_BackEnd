@@ -1,4 +1,8 @@
-﻿using System;
+﻿using GoBetGoal_BackEnd.Models; // 確保引用了您的模型命名空間
+using GoBetGoal_BackEnd.Models.DTOs;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
@@ -6,9 +10,6 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
-using GoBetGoal_BackEnd.Models; // 確保引用了您的模型命名空間
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace GoBetGoal_BackEnd.Services
 {
@@ -22,7 +23,7 @@ namespace GoBetGoal_BackEnd.Services
         /// 它接收一個或多個圖片 URL，並回傳 AI 的分析結果字串。
         /// </summary>
         // 【修正 #1】在方法簽名中加上 async 關鍵字
-        public static async Task<string> AnalyzeAsync(List<string> imageUrls, string model, string systemPrompt, string userPrompt)
+        public static async Task<AiServiceResponse> AnalyzeAsync(List<string> imageUrls, string model, string systemPrompt, string userPrompt)
         {
             var apiKey = ConfigurationManager.AppSettings["OpenAI_ApiKey"];
             if (string.IsNullOrEmpty(apiKey) || apiKey.StartsWith("sk-YOUR"))
@@ -70,18 +71,41 @@ namespace GoBetGoal_BackEnd.Services
 
                     if (!response.IsSuccessStatusCode)
                     {
-                        return JsonConvert.SerializeObject(new { safety_rating = "unsafe", compliance_rating = "non_compliant", reason = $"API 請求失敗: {response.StatusCode}" });
+                        // 如果 API 請求失敗，回傳一個包含錯誤訊息的失敗物件
+                        return new AiServiceResponse
+                        {
+                            IsSuccess = false,
+                            MessageContent = $"API 請求失敗: {response.StatusCode}",
+                            Usage = new UsageData() // 給一個空的 Usage 物件
+                        };
                     }
 
-                    var openAIResponse = JObject.Parse(jsonResponse);
-                    var messageContent = openAIResponse["choices"]?[0]?["message"]?["content"]?.ToString();
+                    // 【關鍵改變】將完整的 OpenAI 回應反序列化 (現在它會包含 usage)
+                    var openAIResponse = JsonConvert.DeserializeObject<OpenAIChatResponse>(jsonResponse);
 
-                    return messageContent ?? "{\"safety_rating\": \"unsafe\", \"compliance_rating\": \"non_compliant\", \"reason\": \"AI 未提供有效回應。\"}";
+                    var message = openAIResponse?.Choices?.FirstOrDefault()?.Message;
+                    var usage = openAIResponse?.Usage ?? new UsageData();
+                    var messageContent = message?.Content?.ToString() ?? "AI 未提供有效回應。";
+
+                    // 【關鍵改變】建立並回傳我們自訂的、包含所有資訊的 AiServiceResponse 物件
+                    return new AiServiceResponse
+                    {
+                        IsSuccess = true,
+                        MessageContent = messageContent,
+                        Usage = usage
+                    };
                 }
+
+
             }
             catch (Exception ex)
             {
-                return $"{{\"safety_rating\": \"unsafe\", \"compliance_rating\": \"non_compliant\", \"reason\": \"程式執行異常：{ex.Message}\"}}";
+                return new AiServiceResponse
+                {
+                    IsSuccess = false,
+                    MessageContent = $"程式執行異常：{ex.Message}",
+                    Usage = new UsageData()
+                };
             }
         }
     }
