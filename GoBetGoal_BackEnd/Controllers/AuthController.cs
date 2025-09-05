@@ -2,13 +2,16 @@
 using GoBetGoal_BackEnd.Models.DTOs;
 using GoBetGoal_BackEnd.Security;
 using GoBetGoal_BackEnd.Services;
+using Google.Apis.Auth;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data.Entity.Validation;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using System.Web.Http;
+using System.Web.Security;
 
 namespace GoBetGoal_BackEnd.Controllers
 {
@@ -280,6 +283,127 @@ namespace GoBetGoal_BackEnd.Controllers
             _db.SaveChanges();
 
             return Ok(new SuccessResponseDto { Message = "您的密碼已成功重設，現在可以使用新密碼登入了。" });
+        }
+
+        [HttpPost]
+        [Route("api/auth/google-signin")]
+        [AllowAnonymous]
+        public async Task<IHttpActionResult> GoogleSignIn([FromBody] GoogleLoginRequest request)
+        {
+            try
+            {
+                var clientId = ConfigurationManager.AppSettings["Google.ClientId"];
+                var validationSettings = new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = new[] { clientId }
+                };
+
+                // 1. 驗證 Google ID Token
+                GoogleJsonWebSignature.Payload payload = await GoogleJsonWebSignature.ValidateAsync(request.Token, validationSettings);
+
+                // 2. 從 payload 取得使用者資訊
+                var userEmail = payload.Email.ToLowerInvariant();
+                var googleId = payload.Subject;
+                var googleName = payload.Name;
+
+                // ===== 核心：帳號登入、註冊與關聯邏輯 =====
+
+                // 後端自動生成一個保證唯一的 PlayerId
+                string newPlayerId = GenerateUniquePlayerId(userEmail);
+
+                // 這裡是用虛擬碼，你需要換成你自己的資料庫查詢方式
+                var user = _db.Users.FirstOrDefault(u => u.Email == userEmail);
+
+                // 為了能獨立測試，我們先模擬一個資料庫查詢
+
+                if (user != null) //情況 A: Email 已存在
+                {
+                    // 檢查是否需要關聯 Google ID
+                    if (string.IsNullOrEmpty(user.GoogleId))
+                    {
+                        user.GoogleId = googleId;
+                        // (可選) 如果使用者在 Google 更新了名字，我們也順便同步
+                        if (!string.IsNullOrEmpty(payload.Name))
+                        {
+                            user.GoogleName = googleName;
+                        }
+
+                        _db.SaveChanges(); // 如果有關聯，就儲存變更
+                    }
+
+                    // 不論是否需要關聯，都視為登入成功
+                }
+                else // 情況 B: Email 不存在，是全新使用者
+                {
+                    user = new User
+                    {
+                        Email = userEmail,
+                        GoogleId = googleId,
+                        NickName = !string.IsNullOrEmpty(googleName) ? googleName : newPlayerId,
+                        GoogleName = googleName,
+                        PlayerId = newPlayerId,
+                        UserAvatars = new List<UserAvatar>(), // 初始化集合
+                        UserTrialTemplates = new List<UserTrialTemplate>() // 初始化試煉範本集合
+                    };
+                    // 找出所有免費的頭像
+                    var freeAvatars = _db.Avatars.Where(u => u.AvatarPrice == 0 && u.IsActive).ToList();
+                    var freeTrialTemplates = _db.TrialTemplates.Where(u => u.TrialTemplatePrice == 0).ToList();
+
+
+                    // 為每一個免費頭像，建立關聯紀錄
+                    foreach (var avatar in freeAvatars)
+                    {
+                        user.UserAvatars.Add(new UserAvatar
+                        {
+                            // 不需要再手動設定 UserId！
+                            // User = newUser, // 也可以這樣寫，EF 都看得懂
+                            AvatarId = avatar.Id,
+                        });
+
+                    }
+
+                    // 為每一個免費試煉範本，建立關聯紀錄
+                    foreach (var template in freeTrialTemplates)
+                    {
+                        user.UserTrialTemplates.Add(new UserTrialTemplate
+                        {
+                            TrialTemplateId = template.Id,
+                        });
+                    }
+
+                    _db.Users.Add(user);
+
+                    _db.SaveChanges();
+                }
+
+                // 2. 像 RegisterStepOne 一樣，產生並回傳 JWT Token
+                var jwtAuthUtil = new JwtAuthUtility();
+                string token = jwtAuthUtil.GenerateToken(user);
+                long totalSeconds = (long)TimeSpan.FromDays(90).TotalSeconds;
+
+                // 3. 回傳與 RegisterStepOne 完全相同的 DTO 格式
+                return Ok(new AuthSuccessResponseDto
+                {
+                    Message = "登入成功，請繼續完善資料！", // 訊息可以調整
+                    UserId = user.Id,
+                    Token = token,
+                    ExpiresIn = totalSeconds
+                });
+            }
+            catch (InvalidJwtException)
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "INVALID_GOOGLE_TOKEN",
+                    Message = "提供的資料有誤，請重新操作。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+            catch (Exception ex)
+            {
+                // 在正式產品中，應該要記錄錯誤日誌(Log)
+                return InternalServerError(ex);
+            }
         }
 
 
