@@ -74,7 +74,9 @@ namespace GoBetGoal_BackEnd.Models.DTOs
     {
         public bool OverallResult { get; set; }
         public string OverallMessage { get; set; }
-        public object ImageResults { get; set; } // 使用 object 以支援兩種不同的 ImageResult
+
+        // 【修正 #1】我們不再使用 object，而是永遠使用一個清晰、強型別的 List<ImageResult>
+        public List<ImageResult> ImageResults { get; set; } = new List<ImageResult>();
         public int ChanceRemain { get; set; }
     }
 
