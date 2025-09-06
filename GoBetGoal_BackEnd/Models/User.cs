@@ -13,6 +13,12 @@ namespace GoBetGoal_BackEnd.Models
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
 
+        // 用於第三方登入
+        public string GoogleId { get; set; }
+
+        // Google名稱
+        public string GoogleName { get; set; }
+
         // 登入用 Email
         [Required(ErrorMessage = "{0} 為必填")]
         [Index("IX_UserEmail", IsUnique = true)]
@@ -22,7 +28,7 @@ namespace GoBetGoal_BackEnd.Models
         public string Email { get; set; }
 
         // 密碼（建議實際部署前應加密）
-        [Required(ErrorMessage = "{0} 為必填")]
+        // 用於傳統密碼登入，Google 登入者此欄位為 NULL
         [StringLength(100)] // BCrypt 產生的 Hash 長度固定為 60，但設定長一點以保持彈性
         //[DataType(DataType.Password)]
         [Display(Name = "密碼")]
