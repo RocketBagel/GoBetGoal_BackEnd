@@ -237,6 +237,10 @@
     <Compile Include="Migrations\202508300824561_DeleteCheatBlanketHistoryModel.Designer.cs">
       <DependentUpon>202508300824561_DeleteCheatBlanketHistoryModel.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202509060443373_AdjustUsersModelForGoogleLogin.cs" />
+    <Compile Include="Migrations\202509060443373_AdjustUsersModelForGoogleLogin.Designer.cs">
+      <DependentUpon>202509060443373_AdjustUsersModelForGoogleLogin.cs</DependentUpon>
+    </Compile>
     <Compile Include="Models\DTOs\AchievementDto.cs" />
     <Compile Include="Models\DTOs\ForgotPasswordRequestDto.cs" />
     <Compile Include="Models\DTOs\FriendInfoDto.cs" />
@@ -535,6 +539,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202508300824561_DeleteCheatBlanketHistoryModel.resx">
       <DependentUpon>202508300824561_DeleteCheatBlanketHistoryModel.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202509060443373_AdjustUsersModelForGoogleLogin.resx">
+      <DependentUpon>202509060443373_AdjustUsersModelForGoogleLogin.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>

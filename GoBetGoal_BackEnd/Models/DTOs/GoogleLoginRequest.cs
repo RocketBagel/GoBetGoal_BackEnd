@@ -8,7 +8,7 @@ namespace GoBetGoal_BackEnd.Models.DTOs
 {
     public class GoogleLoginRequest
     {
-        [Required(ErrorMessage = "未提供 Google Token。")]
+        [Required(ErrorMessage = "必須提供 Google Token")]
         public string Token { get; set; }
 
     }
