@@ -34,6 +34,23 @@ You MUST ALWAYS respond ONLY with a JSON object, with no additional text or expl
         public static string BuildUserPrompt(string specificRule, List<string> generalRules, string challengeType)
         {
             string verificationInstructions;
+            // --- 步驟一：準備好所有的規則零件 ---
+    
+    // 這是我們的「平台核心食物規則」，它只在需要時才會被加入
+    string platformFoodRule = "- The image must not contain obvious unhealthy junk food like sugary drinks (e.g., soda, bubble tea), deep-fried food (e.g., fried chicken, french fries), and high-sugar snacks (e.g., desserts, candy) .";
+
+            // 這是從資料庫讀取的通用規則
+            var finalGeneralRules = new List<string>(generalRules ?? new List<string>());
+
+    // --- 步驟二：【關鍵邏輯】判斷是否需要加入「食物規則」---
+    // 我們建立一個列表，存放所有與食物相關的 ChallengeType
+    var foodRelatedTypes = new List<string> { "NegativeList", "ExclusiveDiet" };
+
+    if (foodRelatedTypes.Contains(challengeType))
+    {
+        // 只有當任務類型是食物相關時，才將平台核心食物規則加入到總則中
+        finalGeneralRules.Add(platformFoodRule);
+    }
 
             // 根據前端傳來的 ChallengeType，選擇最精準的 AI 思考模式
             switch (challengeType)
@@ -90,7 +107,7 @@ Please perform a verification task.
 {verificationInstructions}
 
 ## General Rules to Enforce:
-- {string.Join("\n- ", generalRules ?? new List<string>())}
+- {string.Join("\n- ", finalGeneralRules)}
 
 ## Specific Rule for this task/image:
 - {specificRule}
@@ -115,7 +132,7 @@ Based on your analysis, provide the final JSON output. You MUST follow all instr
    - **If 'isSafe' is FALSE:**
      - The 'reason' MUST be the standard, neutral message: '圖片內容不符合社群安全規範。'
 
-   - **Conciseness:** Keep your 'reason' concise, ideally around 15-25 words.
+   - **Conciseness:** Keep your 'reason' concise, ideally around 15-20 words.
 
 
 **2. Strict Output Format:**
