@@ -53,7 +53,7 @@ namespace GoBetGoal_BackEnd.Services
                     new { role = "system", content = systemPrompt },
                     new { role = "user", content = contentList }
                 },
-                max_tokens = 200
+                max_tokens = 300
             };
 
             try

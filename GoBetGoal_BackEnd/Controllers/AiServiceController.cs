@@ -36,49 +36,67 @@ namespace GoBetGoal_BackEnd.Controllers
             var response = new AiVerificationResponseV2();
             bool isOverallPassed = true;
 
-            // --- 3. 核心審核迴圈：逐張審核圖片 ---
+            // --- 3. 核心審核邏輯：改為平行處理 ---
+
+            // 步驟 1: 建立一個列表來存放所有圖片的非同步分析任務
+            var analysisTasks = new List<Task<AiServiceResponse>>();
+
+            // 準備共用的 System Prompt
+            string systemPrompt = ChallengeHelper.GetMasterSystemPrompt();
+
+            // 遍歷所有圖片 URL，為每一張圖片建立一個獨立的審核任務
             for (int i = 0; i < request.ImageUrls.Count; i++)
             {
                 var imageUrl = request.ImageUrls[i];
 
-                // 決定此圖片對應的規則：若規則列表長度足夠，則一對一對應；否則所有圖片共用第一條規則。
+                // 決定此圖片對應的規則
                 string specificRule = (request.StageDescriptions.Count > i)
                     ? request.StageDescriptions[i]
                     : request.StageDescriptions.FirstOrDefault() ?? "";
 
-                // --- 4. 準備 Prompt ---
-                string systemPrompt = ChallengeHelper.GetMasterSystemPrompt();
+                // 準備 User Prompt
                 string userPrompt = ChallengeHelper.BuildUserPrompt(
                     specificRule,
                     request.TrialRules,
                     request.ChallengeType
                 );
 
-                // --- 5. 呼叫 OpenAI 服務 ---
-                // --- 【關鍵修正 #1】接收完整的 AiServiceResponse 物件 ---
-                // 我們不再用 string 去接，而是用我們設計好的「工作報告」模型
-                AiServiceResponse aiServiceResponse = await OpenAIHttpClientService.AnalyzeAsync(
+                // 建立分析任務，並將其加入到任務列表中。
+                // 注意：這裡沒有 `await`，所以程式不會在此處等待，會立刻開始準備下一個任務
+                var task = OpenAIHttpClientService.AnalyzeAsync(
                     new List<string> { imageUrl },
                     "gpt-4o",
                     systemPrompt,
                     userPrompt
                 );
+                analysisTasks.Add(task);
+            }
 
-                // --- 【關鍵修正 #2】將 Token 數印在後端，供您簡報使用 ---
-                // 當您在偵錯模式下執行時，這行日誌會出現在 Visual Studio 的「輸出」視窗
-                // 新版 - 顯示完整的輸入、輸出、總計
+            // 步驟 2: 使用 Task.WhenAll 一次性執行所有任務，並等待它們全部完成
+            // 這是整個流程中最關鍵的改變，所有 API 請求會同時發出
+            AiServiceResponse[] allResults = await Task.WhenAll(analysisTasks);
+
+            // --- 4. 處理所有已完成的審核結果 ---
+            for (int i = 0; i < allResults.Length; i++)
+            {
+                var aiServiceResponse = allResults[i];
+                var imageUrl = request.ImageUrls[i]; // 透過索引值取回對應的 URL
+
+                // --- 接下來的處理邏輯與您原本的幾乎一樣 ---
+
+                // 在後端日誌中紀錄 Token 使用量
                 System.Diagnostics.Debug.WriteLine(
                     $"AI VERIFICATION LOG - ImageUrl: {imageUrl}, " +
                     $"Prompt Tokens: {aiServiceResponse.Usage.PromptTokens}, " +
-
                     $"Completion Tokens: {aiServiceResponse.Usage.CompletionTokens}, " +
                     $"Total Tokens: {aiServiceResponse.Usage.TotalTokens}"
                 );
 
-                // --- 【關鍵修正 #3】從工作報告中，只取出 AI 的文字回覆來進行解析 ---
+                // 解析 AI 回應
                 string rawAiMessageContent = aiServiceResponse.MessageContent;
                 var aiResult = ChallengeHelper.ParseAIResponse<AIVerificationResult>(rawAiMessageContent);
 
+                // 建立圖片結果物件
                 var imageResult = new ImageResult
                 {
                     ImageUrl = imageUrl,
@@ -88,6 +106,7 @@ namespace GoBetGoal_BackEnd.Controllers
                 };
                 response.ImageResults.Add(imageResult);
 
+                // 更新總體結果旗標
                 if (!aiResult.IsSafe || !aiResult.IsCompliant)
                 {
                     isOverallPassed = false;
