@@ -133,26 +133,52 @@ namespace GoBetGoal_BackEnd.Controllers
                 return Content(HttpStatusCode.Conflict, new ErrorResponseDto
                 {
                     ErrorCode = "FRIEND_INVITE_ALREADY_EXISTS",
-                    //Message = "好友邀請已存在或已經是好友。"
-                }); 
+                    Message = "重複邀請或已經是好友。"
+                });
             }
-
-            var newFriendInvitation = new FriendsRelationship
+            using (var transaction = _context.Database.BeginTransaction())
             {
-                UserId = currentUserId,
-                InviteeId = inviteeGuid,
-                Note = request.Note,
-                Status = Status.pending,
-                InviteAt = DateTime.Now,
+                try
+                {
+                    var newFriendInvitation = new FriendsRelationship
+                    {
+                        UserId = currentUserId,
+                        InviteeId = inviteeGuid,
+                        Note = request.Note,
+                        Status = Status.pending,
+                        InviteAt = DateTime.Now,
 
-            };
+                    };
+                    _context.FriendsRelationships.Add(newFriendInvitation);
+                    _context.SaveChanges();
 
-            _context.FriendsRelationships.Add(newFriendInvitation);
-            _context.SaveChanges();
+                    // 建立通知資料(受邀者)
+                    var notifyInvitee = new Notification
+                    {
+                        ReceiverId = inviteeGuid,    // 受邀者
+                        SenderId = currentUserId,         // 來源是發送邀請者
+                        NotificationType = NotificationType.friend_request_accept,
+                        Content = $"{user.NickName}向你發出好友邀請。",
+                        ReferenceId_Int = newFriendInvitation.Id,
+                        CreatedAt = DateTime.Now
+                    };
+                    _context.Notifications.Add(notifyInvitee);
+                    _context.SaveChanges();
 
-
-            return Ok("已發出邀請");
-
+                    transaction.Commit();
+                    return Ok("已發出邀請");
+                }
+                catch (Exception ex)
+                {
+                    // 發生錯誤回滾
+                    transaction.Rollback();
+                    return Content(HttpStatusCode.InternalServerError, new ErrorResponseDto
+                    {
+                        ErrorCode = "INVITE_CREATE_FAILED",
+                        Message = $"建立好友邀請或通知失敗：{ex.Message}"
+                    });
+                }
+            }
         }
 
 
