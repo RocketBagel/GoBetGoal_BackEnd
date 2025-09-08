@@ -176,6 +176,7 @@
   <ItemGroup>
     <Compile Include="App_Start\BundleConfig.cs" />
     <Compile Include="App_Start\FilterConfig.cs" />
+    <Compile Include="App_Start\JsonDeserializationExceptionHandler.cs" />
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="Areas\HelpPage\ApiDescriptionExtensions.cs" />
@@ -241,6 +242,7 @@
     <Compile Include="Migrations\202509060443373_AdjustUsersModelForGoogleLogin.Designer.cs">
       <DependentUpon>202509060443373_AdjustUsersModelForGoogleLogin.cs</DependentUpon>
     </Compile>
+    <Compile Include="Models\Converters\StrictIntConverter.cs" />
     <Compile Include="Models\DTOs\AchievementDto.cs" />
     <Compile Include="Models\DTOs\ForgotPasswordRequestDto.cs" />
     <Compile Include="Models\DTOs\FriendInfoDto.cs" />
@@ -315,6 +317,7 @@
     <Compile Include="Models\DTOs\SocialExpertDto.cs" />
     <Compile Include="Models\DTOs\StageInfoDto.cs" />
     <Compile Include="Models\DTOs\SuccessResponseDto.cs" />
+    <Compile Include="Models\DTOs\SupabaseAuthUserDto.cs" />
     <Compile Include="Models\DTOs\SupabaseOrderDto.cs" />
     <Compile Include="Models\DTOs\TrialDetailDto.cs" />
     <Compile Include="Models\DTOs\TrialLikeDto.cs" />

@@ -133,27 +133,141 @@ namespace GoBetGoal_BackEnd.Controllers
                 return Content(HttpStatusCode.Conflict, new ErrorResponseDto
                 {
                     ErrorCode = "FRIEND_INVITE_ALREADY_EXISTS",
-                    //Message = "好友邀請已存在或已經是好友。"
-                }); 
+                    Message = "重複邀請或已經是好友。"
+                });
+            }
+            using (var transaction = _context.Database.BeginTransaction())
+            {
+                try
+                {
+                    var newFriendInvitation = new FriendsRelationship
+                    {
+                        UserId = currentUserId,
+                        InviteeId = inviteeGuid,
+                        Note = request.Note,
+                        Status = Status.pending,
+                        InviteAt = DateTime.Now,
+
+                    };
+                    _context.FriendsRelationships.Add(newFriendInvitation);
+                    _context.SaveChanges();
+
+                    // 建立通知資料(受邀者)
+                    var notifyInvitee = new Notification
+                    {
+                        ReceiverId = inviteeGuid,    // 受邀者
+                        SenderId = currentUserId,         // 來源是發送邀請者
+                        NotificationType = NotificationType.friend_request_accept,
+                        Content = $"{user.NickName}向你發出好友邀請。",
+                        ReferenceId_Int = newFriendInvitation.Id,
+                        CreatedAt = DateTime.Now
+                    };
+                    _context.Notifications.Add(notifyInvitee);
+                    _context.SaveChanges();
+
+                    transaction.Commit();
+                    return Ok("已發出邀請");
+                }
+                catch (Exception ex)
+                {
+                    // 發生錯誤回滾
+                    transaction.Rollback();
+                    return Content(HttpStatusCode.InternalServerError, new ErrorResponseDto
+                    {
+                        ErrorCode = "INVITE_CREATE_FAILED",
+                        Message = $"建立好友邀請或通知失敗：{ex.Message}"
+                    });
+                }
+            }
+        }
+
+
+        //同意好友邀請(會員中心)
+        [HttpPatch]
+        [Route("api/friends/invitation/{inviteId}")]
+        public IHttpActionResult AgreeFriendInvitation(int inviteId)
+        {
+            //取得當前使用者 ID 
+            Guid currentUserId = GetCurrentUserId();
+            var user = _context.Users.Find(currentUserId);
+            if (user == null)
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "USER_NOT_FOUND",
+                    Message = "指定的使用者不存在。"
+                };
+                return Content(HttpStatusCode.NotFound, error);
             }
 
-            var newFriendInvitation = new FriendsRelationship
+            var invitation = _context.FriendsRelationships.Find(inviteId);
+            if (invitation == null)
             {
-                UserId = currentUserId,
-                InviteeId = inviteeGuid,
-                Note = request.Note,
-                Status = Status.pending,
-                InviteAt = DateTime.Now,
+                return Content(HttpStatusCode.NotFound, new ErrorResponseDto
+                {
+                    ErrorCode = "INVITATION_NOT_FOUND",
+                    Message = "邀請不存在。"
+                });
+            }
 
+            // 是否為受邀者
+            if (invitation.InviteeId != currentUserId)
+            {
+                return Content(HttpStatusCode.Forbidden, new ErrorResponseDto
+                {
+                    ErrorCode = "NOT_INVITEE",
+                    Message = "非受邀者"
+                });
+            }
+
+            // 檢查狀態
+            if (invitation.Status != Status.pending)
+            {
+                return Content(HttpStatusCode.BadRequest, new ErrorResponseDto
+                {
+                    ErrorCode = "INVALID_STATUS",
+                    Message = "邀請已處理，無法重複同意"
+                });
+            }
+            
+            // 更新邀請狀態
+            invitation.Status = Status.accepted;
+            invitation.UpdatedAt = DateTime.UtcNow;
+
+
+            // 建立通知資料(發送邀請者)
+            var notifySender = new Notification
+            {
+                ReceiverId = invitation.UserId,   // 發送邀請者
+                SenderId = currentUserId,         // 來源是受邀者
+                NotificationType = NotificationType.friend_request_accept,
+                Content = $"{user.NickName} 已接受你的好友邀請。",
+                ReferenceId_Int = invitation.Id,  // 關聯到邀請紀錄
+                CreatedAt = DateTime.Now
             };
 
-            _context.FriendsRelationships.Add(newFriendInvitation);
+            // 建立通知資料(受邀者)
+            var notifyInvitee = new Notification
+            {
+                ReceiverId = invitation.InviteeId,    // 受邀者
+                SenderId = invitation.UserId,         // 來源是發送邀請者
+                NotificationType = NotificationType.friend_request_accept,
+                Content = $"你已成功與 {invitation.User.NickName} 成為好友。",
+                ReferenceId_Int = invitation.Id,
+                CreatedAt = DateTime.Now
+            };
+            
+            _context.Notifications.Add(notifySender);
+            _context.Notifications.Add(notifyInvitee);
             _context.SaveChanges();
 
 
-            return Ok("已發出邀請");
 
+
+            return Ok("Agree");
         }
+
+
 
 
         protected override void Dispose(bool disposing)

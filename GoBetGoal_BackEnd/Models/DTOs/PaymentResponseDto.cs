@@ -34,7 +34,8 @@ namespace GoBetGoal_BackEnd.Models.DTOs
         public string Amt { get; set; } //金額
         public string TradeNo { get; set; } //交易序號
         public string MerchantOrderNo { get; set; }  //訂單編號
-        //public string RespondType { get; set; }
+
+        public string RespondType { get; set; }
         public string IP { get; set; } // 付款端 IP
         public string EscrowBank { get; set; } //代收銀行代碼
         public string PaymentType { get; set; } //支付方式 (收款管道/付款工具)
@@ -50,6 +51,8 @@ namespace GoBetGoal_BackEnd.Models.DTOs
         public string ECI { get; set; } //3D 驗證 ECI 值
         public string PayTime { get; set; } //付款完成時間
         public string PaymentMethod { get; set; } //付款方式描述 (CREDIT=信用卡, WEBATM, VACC...)
+        public string AuthBank { get; set; }     // 授權銀行代碼
+        public string ExpireDate { get; set; }   // 繳費截止日 (ATM/超商繳費會用到)
     }
 
 }

@@ -61,6 +61,12 @@ namespace GoBetGoal_BackEnd
             // --- 5. 移除 XML Formatter ---
             // 讓 API 只支援回傳 JSON 格式，更單純、更安全
             config.Formatters.Remove(config.Formatters.XmlFormatter);
+
+            // --- 6.用來捕捉 JSON 反序列化時的例外，例如
+            // 當前端傳入字串給 int 屬性時，
+            // StrictIntConverter 會丟出 JsonSerializationException，
+            // 此 Filter 會將例外轉成 HTTP 400 BadRequest 並回傳錯誤訊息給前端
+            config.MessageHandlers.Add(new JsonExceptionMessageHandler());
         }
     }
 }

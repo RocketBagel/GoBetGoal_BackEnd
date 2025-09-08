@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using GoBetGoal_BackEnd.Models.Converters;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -15,15 +16,20 @@ namespace GoBetGoal_BackEnd.Models.DTOs
 
         [Required]
         [JsonProperty("email")]
+        [EmailAddress]
         public string UserEmail { get; set; }
 
         [Required]
         [JsonProperty("get_bagel")]
-        public int BagelCount { get; set; }
+        [JsonConverter(typeof(StrictIntConverter))]
+        [Range(1, int.MaxValue, ErrorMessage = "get_bagel 必須為正整數")]
+        public dynamic BagelCount { get; set; }
 
         [Required]
         [JsonProperty("deposit_money")]
-        public int Amount { get; set; }
+        [JsonConverter(typeof(StrictIntConverter))]
+        [Range(1, int.MaxValue, ErrorMessage = "deposit_money 必須為正整數")]
+        public dynamic Amount { get; set; }
 
     }
 }
