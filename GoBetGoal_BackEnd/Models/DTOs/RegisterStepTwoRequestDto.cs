@@ -9,7 +9,7 @@ namespace GoBetGoal_BackEnd.Models.DTOs
     public class RegisterStepTwoRequestDto
     {
         [Required(ErrorMessage = "暱稱為必填欄位")]
-        [StringLength(50, ErrorMessage = "暱稱長度不可超過 50 個字元")]
+        [StringLength(5, ErrorMessage = "暱稱長度不可超過 5 個字元")]
         public string NickName { get; set; }
 
         [Required(ErrorMessage = "頭像Id為必填欄位")]
