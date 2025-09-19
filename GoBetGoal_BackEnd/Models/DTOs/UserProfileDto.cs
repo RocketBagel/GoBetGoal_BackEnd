@@ -43,15 +43,15 @@ namespace GoBetGoal_BackEnd.Models.DTOs
 
         /// <summary>
         /// 使用者已購買/擁有的試煉模板 ID 列表
-        /// </summary>
-        [JsonProperty("purchase_challenge")]
-        public List<int> PurchaseChallengeIds { get; set; }
+        ///// </summary>
+        //[JsonProperty("purchase_challenge")]
+        //public List<int> PurchaseChallengeIds { get; set; }
 
         /// <summary>
         /// 使用者已購買/擁有的頭像 ID 列表
         /// </summary>
-        [JsonProperty("purchase_avatar")]
-        public List<int> PurchaseAvatarIds { get; set; }
+        //[JsonProperty("purchase_avatar")]
+        //public List<int> PurchaseAvatarIds { get; set; }
 
         /// <summary>
         /// 當前檢視者與這位使用者的好友狀態
