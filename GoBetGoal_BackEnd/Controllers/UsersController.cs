@@ -304,9 +304,8 @@ namespace GoBetGoal_BackEnd.Controllers
                 // 填入剛剛計算好的欄位
                 TotalTrialCount = totalTrialCount,
                 LikedPostsCount = likedPostsCount,
-                FriendCount = friendCount,
-                PurchaseChallengeIds = purchaseChallengeIds,
-                PurchaseAvatarIds = purchaseAvatarIds
+                FriendCount = friendCount
+               
 
                 // 注意：這裡不需要 FriendState，因為使用者看自己的個人檔案，這個欄位沒有意義
             };
@@ -397,11 +396,7 @@ namespace GoBetGoal_BackEnd.Controllers
                 // 計算欄位 (分開查詢以確保效能和正確性)
                 TotalTrialCount = _db.TrialParticipants.Count(tp => tp.InviteeId == targetUser.Id && tp.Status == Status.accepted),
                 LikedPostsCount = _db.PostLikes.Count(like => like.Post.UserId == targetUser.Id),
-                FriendCount = _db.FriendsRelationships.Count(fr => (fr.UserId == targetUser.Id || fr.InviteeId == targetUser.Id) && fr.Status == Status.accepted),
-
-                // 購買項目
-                PurchaseChallengeIds = _db.UserTrialTemplates.Where(x => x.UserId == targetUser.Id).Select(x => x.TrialTemplateId).ToList(),
-                PurchaseAvatarIds = _db.UserAvatars.Where(x => x.UserId == targetUser.Id).Select(x => x.AvatarId).ToList(),
+                FriendCount = _db.FriendsRelationships.Count(fr => (fr.UserId == targetUser.Id || fr.InviteeId == targetUser.Id) && fr.Status == Status.accepted),              
 
                 // 計算好友狀態
                 FriendState = GetFriendState(viewerId, targetUser.Id, preloadedFriendships)
