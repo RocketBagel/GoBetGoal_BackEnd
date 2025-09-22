@@ -255,6 +255,7 @@
     <Compile Include="Models\DTOs\NotificationCenterDto.cs" />
     <Compile Include="Models\DTOs\NotificationDto.cs" />
     <Compile Include="Models\DTOs\PublicUserProfileDto.cs" />
+    <Compile Include="Models\DTOs\PublicUserProfileDtoV2.cs" />
     <Compile Include="Models\DTOs\PurchaseSuccessDto.cs" />
     <Compile Include="Controllers\TrialController.cs" />
     <Compile Include="Controllers\TrialsController.cs" />
