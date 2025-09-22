@@ -14,7 +14,7 @@ namespace GoBetGoal_BackEnd.Services
         /// <summary>
         /// 非同步地寄送密碼重設「連結」郵件
         /// </summary>
-        public async Task SendPasswordResetLinkEmailAsync(string toEmail, string resetLink)
+        public async Task SendPasswordResetLinkEmailAsync(string toEmail, string resetLink, string nickname)
         {
 
             // 1. 從設定檔中讀取寄件人信箱和應用程式密碼
@@ -29,7 +29,7 @@ namespace GoBetGoal_BackEnd.Services
                 Body = $@"
                 <html>
                 <body>
-                    <p>您好，</p>
+                    <p>會員 {nickname} 您好，</p>
                     <p>我們已收到您的密碼重設請求。請點擊下方的連結來設定您的新密碼。此連結將在 15 分鐘後失效。</p>
                     <p><a href='{resetLink}'>點此重設您的密碼</a></p>
                     <p>如果您沒有請求重設密碼，請忽略此郵件。</p>

@@ -227,11 +227,12 @@ namespace GoBetGoal_BackEnd.Controllers
 
                     // b. 建立前端重設密碼頁面的完整 URL
                     //    注意： 應替換為您前端的真實網址
-                    string resetLink = $"https://gobetgoal.vercel.app/reset-password?token={passwordResetToken}";
+                    string resetLink = $"https://gobetgoal.vercel.app/auth/reset-password?token={passwordResetToken}";
+                    string nickname = user.NickName;
 
                     // c. 呼叫 EmailService 來寄送這封包含連結的郵件
                     var emailService = new EmailService();
-                    await emailService.SendPasswordResetLinkEmailAsync(user.Email, resetLink);
+                    await emailService.SendPasswordResetLinkEmailAsync(user.Email, resetLink, nickname);
 
                 }
                 catch (Exception ex)
