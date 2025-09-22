@@ -347,6 +347,7 @@
     <Compile Include="Models\UserAvatar.cs" />
     <Compile Include="Models\UserStage.cs" />
     <Compile Include="Models\UserTrialTemplate.cs" />
+    <Compile Include="Models\Validations\NicknameLengthAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Security\JwtAuthFilter.cs" />
     <Compile Include="Security\JwtAuthUtility.cs" />
