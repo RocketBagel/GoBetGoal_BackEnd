@@ -445,10 +445,10 @@ namespace GoBetGoal_BackEnd.Controllers
         private string ExtractPrefixFromEmail(string email)
         {
             if (string.IsNullOrWhiteSpace(email) || !email.Contains("@"))
-                return "player"; // 預設值
+                return "anno"; // 預設值
 
             string username = email.Split('@')[0];
-            string letters = string.Concat(username.Where(char.IsLetter)).ToLower();
+            string letters = string.Concat(username.Where(c => char.IsLetter(c) && c < 128)).ToLower();
 
             if (letters.Length < 2)
             {

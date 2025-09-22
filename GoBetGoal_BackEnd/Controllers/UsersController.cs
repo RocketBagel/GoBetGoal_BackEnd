@@ -304,7 +304,8 @@ namespace GoBetGoal_BackEnd.Controllers
                 // 填入剛剛計算好的欄位
                 TotalTrialCount = totalTrialCount,
                 LikedPostsCount = likedPostsCount,
-                FriendCount = friendCount
+                FriendCount = friendCount,
+                FriendState="self"
                
 
                 // 注意：這裡不需要 FriendState，因為使用者看自己的個人檔案，這個欄位沒有意義
