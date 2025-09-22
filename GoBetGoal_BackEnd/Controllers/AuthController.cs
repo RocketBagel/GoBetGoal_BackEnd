@@ -75,9 +75,11 @@ namespace GoBetGoal_BackEnd.Controllers
             // 注意：這裡先不要 Add 到 _db，讓我們先建立好完整的物件圖 (Object Graph)
 
             // 找出所有免費的頭像
-            var freeAvatars = _db.Avatars.Where(u => u.AvatarPrice == 0 && u.IsActive).ToList();
+            var freeAvatars = _db.Avatars.Where(u => u.AvatarPrice == 0 && u.IsActive).OrderBy(a=>a.SortOrder).ToList();
             var freeTrialTemplates = _db.TrialTemplates.Where(u => u.TrialTemplatePrice == 0).ToList();
 
+            // *** 2. 新增布林值 isFirstAvatar 來追蹤是否為第一個頭像 ***
+            bool isFirstAvatar = true;
 
             // 為每一個免費頭像，建立關聯紀錄
             foreach (var avatar in freeAvatars)
@@ -87,7 +89,12 @@ namespace GoBetGoal_BackEnd.Controllers
                     // 不需要再手動設定 UserId！
                     // User = newUser, // 也可以這樣寫，EF 都看得懂
                     AvatarId = avatar.Id,
+                    // *** 3. 將 IsCurrent 設為 isFirstAvatar ***
+                    //    => 迴圈第一次執行時 isFirstAvatar 為 true，之後都為 false
+                    IsCurrent = isFirstAvatar
                 });
+
+                isFirstAvatar = false;
 
             }
 
