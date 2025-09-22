@@ -384,14 +384,12 @@ namespace GoBetGoal_BackEnd.Controllers
         /// <summary>
         /// 輔助方法：根據目標使用者和檢視者，建立一個 UserProfileDto
         /// </summary>
-        private UserProfileDto CreateUserProfileDto(User targetUser, Guid? viewerId, List<FriendsRelationship> preloadedFriendships = null)
+        private PublicUserProfileDtoV2 CreateUserProfileDto(User targetUser, Guid? viewerId, List<FriendsRelationship> preloadedFriendships = null)
         {
-            var dto = new UserProfileDto
+            var dto = new PublicUserProfileDtoV2
             {
                 UserId = targetUser.Id,
                 NickName = targetUser.NickName,
-                BagelCount = targetUser.BagelCount,
-                CheatBlanketCount = targetUser.CheatBlanketCount,
                 CurrentAvatarUrl = targetUser.UserAvatars.FirstOrDefault(ua => ua.IsCurrent)?.Avatar.AvatarImagePath,
 
                 // 計算欄位 (分開查詢以確保效能和正確性)
