@@ -86,7 +86,32 @@ namespace GoBetGoal_BackEnd.Controllers
 
             userToUpdate.NickName = model.NickName;
             userToUpdate.UpdatedAt = DateTime.Now;
-            userToUpdate.BagelCount += 10000;
+
+            // --- 步驟 4: 執行核心操作 (Transaction) ---
+
+            int balanceBefore = userToUpdate.BagelCount;
+
+            userToUpdate.BagelCount += 100000;
+
+            // c. 記錄交易後的餘額
+            int balanceAfter = userToUpdate.BagelCount;
+
+            // e. *** 新增：建立 BagelTransaction 交易紀錄 ***
+            var transaction = new BagelTransaction
+            {
+                UserId = currentUserId,
+                TransactionType = TransactionType.系統贈送, 
+                ProductType = ProductType.Bagel,         
+                ReferenceId = null,          
+                ItemName = $"貝果-註冊贈送", // 交易項目名稱
+                Price = 100000,       // 商品單價
+                Quantity = 1,                               // 購買數量
+                Amount = 100000,     // 交易金額 (支出為負數)
+                BalanceBefore = balanceBefore,              // 交易前餘額
+                BalanceAfter = balanceAfter                // 交易後餘額
+                /* CreatedAt = DateTime.UtcNow  */               // 交易時間
+            };
+            _db.BagelTransactions.Add(transaction); // 將交易紀錄加入 DbContext
 
             // 2. 更新 UserAvatar 表
             //    a. 先將使用者目前所有的頭像都設為非當前 (IsCurrent = false)
@@ -124,7 +149,7 @@ namespace GoBetGoal_BackEnd.Controllers
                 return InternalServerError(ex);
             }
 
-            var successResponse = new SuccessResponseDto { Message = "個人資料建立成功！恭喜您獲得 10,000 貝果獎勵！" };
+            var successResponse = new SuccessResponseDto { Message = "個人資料建立成功！恭喜您獲得 100,000 貝果獎勵！" };
             return Ok(successResponse);
         }
 

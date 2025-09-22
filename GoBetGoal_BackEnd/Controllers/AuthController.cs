@@ -347,17 +347,17 @@ namespace GoBetGoal_BackEnd.Controllers
                     {
                         Email = userEmail,
                         GoogleId = googleId,
-                        NickName = !string.IsNullOrEmpty(googleName) ? googleName : newPlayerId,
+                        NickName = newPlayerId,
                         GoogleName = googleName,
                         PlayerId = newPlayerId,
                         UserAvatars = new List<UserAvatar>(), // 初始化集合
                         UserTrialTemplates = new List<UserTrialTemplate>() // 初始化試煉範本集合
                     };
                     // 找出所有免費的頭像
-                    var freeAvatars = _db.Avatars.Where(u => u.AvatarPrice == 0 && u.IsActive).ToList();
+                    var freeAvatars = _db.Avatars.Where(u => u.AvatarPrice == 0 && u.IsActive).OrderBy(u=>u.SortOrder).ToList();
                     var freeTrialTemplates = _db.TrialTemplates.Where(u => u.TrialTemplatePrice == 0).ToList();
 
-
+                    bool isCurrentAvatar = true;
                     // 為每一個免費頭像，建立關聯紀錄
                     foreach (var avatar in freeAvatars)
                     {
@@ -366,8 +366,10 @@ namespace GoBetGoal_BackEnd.Controllers
                             // 不需要再手動設定 UserId！
                             // User = newUser, // 也可以這樣寫，EF 都看得懂
                             AvatarId = avatar.Id,
+                            IsCurrent=isCurrentAvatar
                         });
 
+                        isCurrentAvatar = false;
                     }
 
                     // 為每一個免費試煉範本，建立關聯紀錄
