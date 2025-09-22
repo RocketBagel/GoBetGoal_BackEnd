@@ -75,9 +75,11 @@ namespace GoBetGoal_BackEnd.Controllers
             // 注意：這裡先不要 Add 到 _db，讓我們先建立好完整的物件圖 (Object Graph)
 
             // 找出所有免費的頭像
-            var freeAvatars = _db.Avatars.Where(u => u.AvatarPrice == 0 && u.IsActive).ToList();
+            var freeAvatars = _db.Avatars.Where(u => u.AvatarPrice == 0 && u.IsActive).OrderBy(a=>a.SortOrder).ToList();
             var freeTrialTemplates = _db.TrialTemplates.Where(u => u.TrialTemplatePrice == 0).ToList();
 
+            // *** 2. 新增布林值 isFirstAvatar 來追蹤是否為第一個頭像 ***
+            bool isFirstAvatar = true;
 
             // 為每一個免費頭像，建立關聯紀錄
             foreach (var avatar in freeAvatars)
@@ -87,7 +89,12 @@ namespace GoBetGoal_BackEnd.Controllers
                     // 不需要再手動設定 UserId！
                     // User = newUser, // 也可以這樣寫，EF 都看得懂
                     AvatarId = avatar.Id,
+                    // *** 3. 將 IsCurrent 設為 isFirstAvatar ***
+                    //    => 迴圈第一次執行時 isFirstAvatar 為 true，之後都為 false
+                    IsCurrent = isFirstAvatar
                 });
+
+                isFirstAvatar = false;
 
             }
 
@@ -220,11 +227,12 @@ namespace GoBetGoal_BackEnd.Controllers
 
                     // b. 建立前端重設密碼頁面的完整 URL
                     //    注意： 應替換為您前端的真實網址
-                    string resetLink = $"https://gobetgoal.vercel.app/reset-password?token={passwordResetToken}";
+                    string resetLink = $"https://gobetgoal.vercel.app/auth/reset-password?token={passwordResetToken}";
+                    string nickname = user.NickName;
 
                     // c. 呼叫 EmailService 來寄送這封包含連結的郵件
                     var emailService = new EmailService();
-                    await emailService.SendPasswordResetLinkEmailAsync(user.Email, resetLink);
+                    await emailService.SendPasswordResetLinkEmailAsync(user.Email, resetLink, nickname);
 
                 }
                 catch (Exception ex)
@@ -339,17 +347,17 @@ namespace GoBetGoal_BackEnd.Controllers
                     {
                         Email = userEmail,
                         GoogleId = googleId,
-                        NickName = !string.IsNullOrEmpty(googleName) ? googleName : newPlayerId,
+                        NickName = newPlayerId,
                         GoogleName = googleName,
                         PlayerId = newPlayerId,
                         UserAvatars = new List<UserAvatar>(), // 初始化集合
                         UserTrialTemplates = new List<UserTrialTemplate>() // 初始化試煉範本集合
                     };
                     // 找出所有免費的頭像
-                    var freeAvatars = _db.Avatars.Where(u => u.AvatarPrice == 0 && u.IsActive).ToList();
+                    var freeAvatars = _db.Avatars.Where(u => u.AvatarPrice == 0 && u.IsActive).OrderBy(u=>u.SortOrder).ToList();
                     var freeTrialTemplates = _db.TrialTemplates.Where(u => u.TrialTemplatePrice == 0).ToList();
 
-
+                    bool isCurrentAvatar = true;
                     // 為每一個免費頭像，建立關聯紀錄
                     foreach (var avatar in freeAvatars)
                     {
@@ -358,8 +366,10 @@ namespace GoBetGoal_BackEnd.Controllers
                             // 不需要再手動設定 UserId！
                             // User = newUser, // 也可以這樣寫，EF 都看得懂
                             AvatarId = avatar.Id,
+                            IsCurrent=isCurrentAvatar
                         });
 
+                        isCurrentAvatar = false;
                     }
 
                     // 為每一個免費試煉範本，建立關聯紀錄
@@ -445,10 +455,10 @@ namespace GoBetGoal_BackEnd.Controllers
         private string ExtractPrefixFromEmail(string email)
         {
             if (string.IsNullOrWhiteSpace(email) || !email.Contains("@"))
-                return "player"; // 預設值
+                return "anno"; // 預設值
 
             string username = email.Split('@')[0];
-            string letters = string.Concat(username.Where(char.IsLetter)).ToLower();
+            string letters = string.Concat(username.Where(c => char.IsLetter(c) && c < 128)).ToLower();
 
             if (letters.Length < 2)
             {

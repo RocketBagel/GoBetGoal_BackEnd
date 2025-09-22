@@ -255,6 +255,7 @@
     <Compile Include="Models\DTOs\NotificationCenterDto.cs" />
     <Compile Include="Models\DTOs\NotificationDto.cs" />
     <Compile Include="Models\DTOs\PublicUserProfileDto.cs" />
+    <Compile Include="Models\DTOs\PublicUserProfileDtoV2.cs" />
     <Compile Include="Models\DTOs\PurchaseSuccessDto.cs" />
     <Compile Include="Controllers\TrialController.cs" />
     <Compile Include="Controllers\TrialsController.cs" />
@@ -347,6 +348,7 @@
     <Compile Include="Models\UserAvatar.cs" />
     <Compile Include="Models\UserStage.cs" />
     <Compile Include="Models\UserTrialTemplate.cs" />
+    <Compile Include="Models\Validations\NicknameLengthAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Security\JwtAuthFilter.cs" />
     <Compile Include="Security\JwtAuthUtility.cs" />

@@ -154,8 +154,7 @@ namespace GoBetGoal_BackEnd.Controllers
                 userProfileDto.FriendCount = _db.FriendsRelationships
         .Count(fr => (fr.UserId == user.Id || fr.InviteeId == user.Id)
                   && fr.Status == Status.accepted);
-                userProfileDto.PurchaseChallengeIds = _db.UserTrialTemplates.Where(x => x.UserId == user.Id).Select(x => x.TrialTemplateId).ToList();
-                userProfileDto.PurchaseAvatarIds = _db.UserAvatars.Where(x => x.UserId == user.Id).Select(x => x.AvatarId).ToList();
+               
 
                 userProfileDto.CurrentAvatarUrl = user.UserAvatars.Where(u => u.IsCurrent).Select(u => u.Avatar.AvatarImagePath).FirstOrDefault();
                 userProfileDto.FriendState = calculatedFriendState;
