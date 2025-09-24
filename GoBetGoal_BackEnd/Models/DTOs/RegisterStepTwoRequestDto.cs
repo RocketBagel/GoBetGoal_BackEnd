@@ -9,11 +9,12 @@ namespace GoBetGoal_BackEnd.Models.DTOs
 {
     public class RegisterStepTwoRequestDto
     {
-        [Required(ErrorMessage = "暱稱為必填欄位")]
+        //[Required(ErrorMessage = "暱稱為必填欄位")]
         [NicknameLength(10)]
         public string NickName { get; set; }
 
         [Required(ErrorMessage = "頭像Id為必填欄位")]
-        public int AvatarId { get; set; }
+        [RegularExpression("^[0-9]+$", ErrorMessage = "無效的頭像 ID")]
+        public string AvatarId { get; set; }
     }
 }

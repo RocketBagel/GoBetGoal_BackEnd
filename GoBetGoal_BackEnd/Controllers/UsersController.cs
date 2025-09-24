@@ -44,7 +44,20 @@ namespace GoBetGoal_BackEnd.Controllers
 
             }
 
-            var selectedAvatar = _db.Avatars.FirstOrDefault(a => a.Id == model.AvatarId && a.IsActive);
+            // --- *** 新增的、手動的型別轉換與驗證 *** ---
+            int avatarId;
+            if (!int.TryParse(model.AvatarId, out avatarId))
+            {
+                // 如果傳入的 string 無法被成功轉換為 int
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "AVATAR_NOT_FOUND",
+                    Message = "指定的頭像不存在。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
+            var selectedAvatar = _db.Avatars.FirstOrDefault(a => a.Id == avatarId && a.IsActive);
             if (selectedAvatar == null)
             {
                 var error = new ErrorResponseDto
@@ -58,7 +71,7 @@ namespace GoBetGoal_BackEnd.Controllers
 
             if (selectedAvatar.AvatarPrice > 0)
             {
-                bool userOwnsThisAvatar = _db.UserAvatars.Any(a => a.UserId == currentUserId && a.AvatarId == model.AvatarId);
+                bool userOwnsThisAvatar = _db.UserAvatars.Any(a => a.UserId == currentUserId && a.AvatarId == avatarId);
 
                 if (!userOwnsThisAvatar)
                 {
@@ -122,7 +135,7 @@ namespace GoBetGoal_BackEnd.Controllers
             }
 
             //    b. 接著，從 allUserAvatars 中找到使用者「新選擇」的那一筆
-            var chosenAvatarEntry = allUserAvatars.FirstOrDefault(ua => ua.AvatarId == model.AvatarId);
+            var chosenAvatarEntry = allUserAvatars.FirstOrDefault(ua => ua.AvatarId == avatarId);
 
             //    c. 將它設為當前 (IsCurrent = true)
             //       (我們在前面的驗證已確保 chosenAvatarEntry 不會是 null，所以這裡可以直接設定)
@@ -219,7 +232,19 @@ namespace GoBetGoal_BackEnd.Controllers
                 return Content(HttpStatusCode.NotFound, error);
             }
 
-            var selectedAvatar = _db.Avatars.FirstOrDefault(a => a.Id == model.AvatarId && a.IsActive);
+            int avatarId;
+            if (!int.TryParse(model.AvatarId, out avatarId))
+            {
+                // 如果傳入的 string 無法被成功轉換為 int
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "AVATAR_NOT_FOUND",
+                    Message = "指定的頭像不存在。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
+            var selectedAvatar = _db.Avatars.FirstOrDefault(a => a.Id == avatarId && a.IsActive);
             if (selectedAvatar == null)
             {
                 var error = new ErrorResponseDto
@@ -233,7 +258,7 @@ namespace GoBetGoal_BackEnd.Controllers
 
             if (selectedAvatar.AvatarPrice > 0)
             {
-                bool userOwnsThisAvatar = _db.UserAvatars.Any(a => a.UserId == currentUserId && a.AvatarId == model.AvatarId);
+                bool userOwnsThisAvatar = _db.UserAvatars.Any(a => a.UserId == currentUserId && a.AvatarId == avatarId);
 
                 if (!userOwnsThisAvatar)
                 {
@@ -259,7 +284,7 @@ namespace GoBetGoal_BackEnd.Controllers
             }
 
             // 將新選擇的頭像標記為 true
-            var newCurrentAvatar = allUserAvatars.FirstOrDefault(ua => ua.AvatarId == model.AvatarId);
+            var newCurrentAvatar = allUserAvatars.FirstOrDefault(ua => ua.AvatarId == avatarId);
             // 理論上 newCurrentAvatar 不會是 null，因為我們在步驟 1 已經檢查過了
             if (newCurrentAvatar != null)
             {
