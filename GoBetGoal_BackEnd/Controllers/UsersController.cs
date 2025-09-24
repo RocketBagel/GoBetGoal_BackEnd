@@ -343,8 +343,18 @@ namespace GoBetGoal_BackEnd.Controllers
         [HttpGet]
         [Route("api/users/{userId}")] // api/users/{id}
         [AllowAnonymous] // 允許訪客和會員存取
-        public IHttpActionResult GetUserProfile(Guid userId)
+        public IHttpActionResult GetUserProfile(string userId)
         {
+            // 步驟二：手動進行 Guid 格式驗證
+            if (!Guid.TryParse(userId, out Guid userGuid))
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "INVALID_USER_ID_FORMAT",
+                    Message = "提供的使用者 ID 格式不正確。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
             // 步驟 1：溫和地取得當前檢視者的 ID (訪客則為 null)
             Guid? viewerId = TryGetCurrentUserId();
 
@@ -352,7 +362,7 @@ namespace GoBetGoal_BackEnd.Controllers
             // 我們使用最相容的字串路徑 .Include()
             var targetUser = _db.Users
                  .Include(u => u.UserAvatars.Select(ua => ua.Avatar))
-                 .FirstOrDefault(u => u.Id == userId);
+                 .FirstOrDefault(u => u.Id == userGuid);
 
 
             // 步驟 3：如果找不到使用者，回傳 404 Not Found
