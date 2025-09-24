@@ -596,9 +596,23 @@ namespace GoBetGoal_BackEnd.Controllers
 
 
         [HttpGet]
-        [Route("api/trial/{trialId}/results")]
-        public IHttpActionResult GetMyTrialResults(int trialId)
+        [Route("api/trial/{inputTrialId}/results")]
+        public IHttpActionResult GetMyTrialResults(string inputTrialId)
         {
+            // --- *** 步驟二：在方法開頭，手動進行型別轉換與驗證 *** ---
+            int trialId;
+            if (!int.TryParse(inputTrialId, out trialId))
+            {
+                // 如果傳入的 string 無法被成功轉換為 int
+                // 就回傳一個我們自訂的 400 Bad Request 錯誤
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "TRIAL_NOT_FOUND",
+                    Message = "指定的試煉不存在。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
             // 1. 取得並驗證使用者身份
             Guid currentUserId = GetCurrentUserId();
 
