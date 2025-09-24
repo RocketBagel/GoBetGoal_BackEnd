@@ -10,7 +10,7 @@ namespace GoBetGoal_BackEnd.Models.DTOs
 {
     public class UpdateProfileRequestDto
     {
-        [Required(ErrorMessage = "暱稱為必填欄位")]
+        //[Required(ErrorMessage = "暱稱為必填欄位")]
         [NicknameLength(10)]
         public string NickName { get; set; }
 
