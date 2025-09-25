@@ -447,6 +447,11 @@ namespace GoBetGoal_BackEnd.Controllers
 
             // --- 2. 業務邏輯驗證 ---
 
+            var trial = _db.Trials.FirstOrDefault(t => t.Id == trialId);
+
+            if (trial == null) { return Content(HttpStatusCode.BadRequest, new ErrorResponseDto { ErrorCode = "TRIAL_NOT_FOUND", Message = "指定的試煉不存在。" }); }
+
+
             // a. 檢查使用者是否為此試煉的參與者
             bool isParticipant = _db.TrialParticipants.Any(p => p.TrialId == trialId && p.InviteeId == currentUserId && p.Status == Status.accepted);
             if (!isParticipant)
@@ -637,7 +642,7 @@ namespace GoBetGoal_BackEnd.Controllers
                 .Include(t => t.TrialParticipants.Select(p => p.Invitee))
                 .FirstOrDefault(t => t.Id == trialId);
 
-            if (trial == null) { return Content(HttpStatusCode.NotFound, new ErrorResponseDto { ErrorCode = "TRIAL_NOT_FOUND", Message = "指定的試煉不存在。" }); }
+            if (trial == null) { return Content(HttpStatusCode.BadRequest, new ErrorResponseDto { ErrorCode = "TRIAL_NOT_FOUND", Message = "指定的試煉不存在。" }); }
 
             // b. (安全檢查) 確認當前使用者是參與者之一
             var participants = trial.TrialParticipants.Where(p => p.Status == Status.accepted).ToList();
