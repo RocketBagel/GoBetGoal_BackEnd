@@ -528,9 +528,21 @@ namespace GoBetGoal_BackEnd.Controllers
         /// </summary>
         /// <param name="id">要退出的試煉 ID</param>
         [HttpDelete]
-        [Route("api/trial/{trialId}/participation")]
-        public IHttpActionResult LeaveTrial(int trialId)
+        [Route("api/trial/{trialIdInput}/participation")]
+        public IHttpActionResult LeaveTrial(string trialIdInput)
         {
+
+            int trialId;
+            if (!int.TryParse(trialIdInput, out trialId))
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "TRIAL_NOT_FOUND",
+                    Message = "指定的試煉不存在。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
             // 1. 取得當前使用者 ID (此 API 需要驗證)
             Guid currentUserId = GetCurrentUserId();
 
@@ -548,9 +560,22 @@ namespace GoBetGoal_BackEnd.Controllers
             // b. 檢查試煉是否已開始 (最關鍵的業務規則)
             //    我們需要從 participation 關聯的 Trial 物件取得開始時間
             var trial = _db.Trials.Find(trialId);
-            if (trial == null) { return Content(HttpStatusCode.NotFound, new ErrorResponseDto { ErrorCode = "TRIAL_NOT_FOUND", Message = "指定的試煉不存在。" }); } // 理論上不會發生，但做個保險
+            if (trial == null) { return Content(HttpStatusCode.BadRequest, new ErrorResponseDto { ErrorCode = "TRIAL_NOT_FOUND", Message = "指定的試煉不存在。" }); } // 理論上不會發生，但做個保險
 
-            if (DateTime.Now >= trial.StartTime)
+            bool isCreatedToday = trial.CreatedAt.Date == DateTime.Now.Date;
+            DateTime cutOffTime;
+
+            if (isCreatedToday)
+            {
+                cutOffTime = trial.CreatedAt.Date.AddDays(1).AddSeconds(-1);
+            }
+            else
+            {
+                cutOffTime = trial.StartTime.Date.AddSeconds(-1);
+            }
+
+
+            if (DateTime.Now > cutOffTime)
             {
                 return Content(HttpStatusCode.Forbidden, new ErrorResponseDto { ErrorCode = "TRIAL_ALREADY_STARTED", Message = "試煉已開始，無法退出。" });
             }
