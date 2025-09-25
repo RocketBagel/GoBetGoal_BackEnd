@@ -8,6 +8,7 @@ using System.Data.Entity;
 using System.Linq;
 using System.Net;
 using System.Web.Http;
+using static Google.Apis.Requests.RequestError;
 
 namespace GoBetGoal_BackEnd.Controllers
 {
@@ -421,14 +422,26 @@ namespace GoBetGoal_BackEnd.Controllers
         /// <param name="id">要分享的試煉 ID</param>
         /// <param name="model">包含心得和可選封面圖的資料</param>
         [HttpPost]
-        [Route("api/trial/{trialId}/share")]
-        public IHttpActionResult ShareTrialPost(int trialId, ShareTrialPostRequestDto model)
+        [Route("api/trial/{trialIdInput}/share")]
+        public IHttpActionResult ShareTrialPost(string trialIdInput, ShareTrialPostRequestDto model)
         {
             //// 1. 驗證 DTO 格式
             //if (!ModelState.IsValid)
             //{
             //    return BadRequest(ModelState);
             //}
+
+            int trialId;
+            if(!int.TryParse(trialIdInput, out trialId))
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "TRIAL_NOT_FOUND",
+                    Message = "指定的試煉不存在。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
 
             Guid currentUserId = GetCurrentUserId();
 
