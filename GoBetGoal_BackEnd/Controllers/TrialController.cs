@@ -515,7 +515,7 @@ namespace GoBetGoal_BackEnd.Controllers
                 return InternalServerError(ex);
             }
 
-            return Ok(new SuccessResponseDto { Message = "已成功分享至大平台！" });
+            return Ok(new SuccessResponseDto { Message = "已成功分享貼文至大平台！" });
         }
 
         /// <summary>
