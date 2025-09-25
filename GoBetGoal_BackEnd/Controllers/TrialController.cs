@@ -8,6 +8,7 @@ using System.Data.Entity;
 using System.Linq;
 using System.Net;
 using System.Web.Http;
+using static Google.Apis.Requests.RequestError;
 
 namespace GoBetGoal_BackEnd.Controllers
 {
@@ -421,14 +422,26 @@ namespace GoBetGoal_BackEnd.Controllers
         /// <param name="id">要分享的試煉 ID</param>
         /// <param name="model">包含心得和可選封面圖的資料</param>
         [HttpPost]
-        [Route("api/trial/{trialId}/share")]
-        public IHttpActionResult ShareTrialPost(int trialId, ShareTrialPostRequestDto model)
+        [Route("api/trial/{trialIdInput}/share")]
+        public IHttpActionResult ShareTrialPost(string trialIdInput, ShareTrialPostRequestDto model)
         {
             //// 1. 驗證 DTO 格式
             //if (!ModelState.IsValid)
             //{
             //    return BadRequest(ModelState);
             //}
+
+            int trialId;
+            if(!int.TryParse(trialIdInput, out trialId))
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "TRIAL_NOT_FOUND",
+                    Message = "指定的試煉不存在。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
 
             Guid currentUserId = GetCurrentUserId();
 
@@ -502,7 +515,7 @@ namespace GoBetGoal_BackEnd.Controllers
                 return InternalServerError(ex);
             }
 
-            return Ok(new SuccessResponseDto { Message = "已成功分享至大平台！" });
+            return Ok(new SuccessResponseDto { Message = "已成功分享貼文至大平台！" });
         }
 
         /// <summary>
@@ -596,9 +609,23 @@ namespace GoBetGoal_BackEnd.Controllers
 
 
         [HttpGet]
-        [Route("api/trial/{trialId}/results")]
-        public IHttpActionResult GetMyTrialResults(int trialId)
+        [Route("api/trial/{inputTrialId}/results")]
+        public IHttpActionResult GetMyTrialResults(string inputTrialId)
         {
+            // --- *** 步驟二：在方法開頭，手動進行型別轉換與驗證 *** ---
+            int trialId;
+            if (!int.TryParse(inputTrialId, out trialId))
+            {
+                // 如果傳入的 string 無法被成功轉換為 int
+                // 就回傳一個我們自訂的 400 Bad Request 錯誤
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "TRIAL_NOT_FOUND",
+                    Message = "指定的試煉不存在。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
             // 1. 取得並驗證使用者身份
             Guid currentUserId = GetCurrentUserId();
 

@@ -48,9 +48,22 @@ namespace GoBetGoal_BackEnd.Controllers
         /// </summary>
         /// <param name="id">要購買的頭像 ID</param>
         [HttpPost]
-        [Route("api/avatars/{avatarId}/purchase")]
-        public IHttpActionResult PurchaseAvatar(int avatarId)
+        [Route("api/avatars/{avatarIdInput}/purchase")]
+        public IHttpActionResult PurchaseAvatar(string avatarIdInput)
         {
+            int avatarId;
+            if (!int.TryParse(avatarIdInput, out avatarId))
+            {
+                // 如果傳入的 string 無法被成功轉換為 int
+                // 就回傳一個我們自訂的 400 Bad Request 錯誤
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "AVATAR_NOT_FOUND",
+                    Message = "指定的頭像不存在。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
             // 步驟 1: 取得當前使用者 ID 並找出使用者
             Guid currentUserId = GetCurrentUserId();
             var user = _db.Users.Find(currentUserId);

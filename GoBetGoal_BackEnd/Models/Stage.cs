@@ -13,11 +13,11 @@ namespace GoBetGoal_BackEnd.Models
         public int StageIndex { get; set; }
 
         //[Required]
-        [StringLength(50)]
-        public string VerificationMode { get; set; }
+        //[StringLength(50)]
+        //public string VerificationMode { get; set; }
 
-        [StringLength(50)]
-        public string ChallengeType { get; set; }
+        //[StringLength(50)]
+        //public string ChallengeType { get; set; }
 
 
         [StringLength(500)]
