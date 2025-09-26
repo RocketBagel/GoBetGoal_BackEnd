@@ -44,7 +44,20 @@ namespace GoBetGoal_BackEnd.Controllers
 
             }
 
-            var selectedAvatar = _db.Avatars.FirstOrDefault(a => a.Id == model.AvatarId && a.IsActive);
+            // --- *** 新增的、手動的型別轉換與驗證 *** ---
+            int avatarId;
+            if (!int.TryParse(model.AvatarId, out avatarId))
+            {
+                // 如果傳入的 string 無法被成功轉換為 int
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "AVATAR_NOT_FOUND",
+                    Message = "指定的頭像不存在。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
+            var selectedAvatar = _db.Avatars.FirstOrDefault(a => a.Id == avatarId && a.IsActive);
             if (selectedAvatar == null)
             {
                 var error = new ErrorResponseDto
@@ -58,7 +71,7 @@ namespace GoBetGoal_BackEnd.Controllers
 
             if (selectedAvatar.AvatarPrice > 0)
             {
-                bool userOwnsThisAvatar = _db.UserAvatars.Any(a => a.UserId == currentUserId && a.AvatarId == model.AvatarId);
+                bool userOwnsThisAvatar = _db.UserAvatars.Any(a => a.UserId == currentUserId && a.AvatarId == avatarId);
 
                 if (!userOwnsThisAvatar)
                 {
@@ -86,7 +99,32 @@ namespace GoBetGoal_BackEnd.Controllers
 
             userToUpdate.NickName = model.NickName;
             userToUpdate.UpdatedAt = DateTime.Now;
-            userToUpdate.BagelCount += 10000;
+
+            // --- 步驟 4: 執行核心操作 (Transaction) ---
+
+            int balanceBefore = userToUpdate.BagelCount;
+
+            userToUpdate.BagelCount += 100000;
+
+            // c. 記錄交易後的餘額
+            int balanceAfter = userToUpdate.BagelCount;
+
+            // e. *** 新增：建立 BagelTransaction 交易紀錄 ***
+            var transaction = new BagelTransaction
+            {
+                UserId = currentUserId,
+                TransactionType = TransactionType.系統贈送, 
+                ProductType = ProductType.Bagel,         
+                ReferenceId = null,          
+                ItemName = $"貝果-註冊贈送", // 交易項目名稱
+                Price = 100000,       // 商品單價
+                Quantity = 1,                               // 購買數量
+                Amount = 100000,     // 交易金額 (支出為負數)
+                BalanceBefore = balanceBefore,              // 交易前餘額
+                BalanceAfter = balanceAfter                // 交易後餘額
+                /* CreatedAt = DateTime.UtcNow  */               // 交易時間
+            };
+            _db.BagelTransactions.Add(transaction); // 將交易紀錄加入 DbContext
 
             // 2. 更新 UserAvatar 表
             //    a. 先將使用者目前所有的頭像都設為非當前 (IsCurrent = false)
@@ -97,7 +135,7 @@ namespace GoBetGoal_BackEnd.Controllers
             }
 
             //    b. 接著，從 allUserAvatars 中找到使用者「新選擇」的那一筆
-            var chosenAvatarEntry = allUserAvatars.FirstOrDefault(ua => ua.AvatarId == model.AvatarId);
+            var chosenAvatarEntry = allUserAvatars.FirstOrDefault(ua => ua.AvatarId == avatarId);
 
             //    c. 將它設為當前 (IsCurrent = true)
             //       (我們在前面的驗證已確保 chosenAvatarEntry 不會是 null，所以這裡可以直接設定)
@@ -124,7 +162,7 @@ namespace GoBetGoal_BackEnd.Controllers
                 return InternalServerError(ex);
             }
 
-            var successResponse = new SuccessResponseDto { Message = "個人資料建立成功！恭喜您獲得 10,000 貝果獎勵！" };
+            var successResponse = new SuccessResponseDto { Message = "個人資料建立成功！恭喜您獲得 100,000 貝果獎勵！" };
             return Ok(successResponse);
         }
 
@@ -194,7 +232,19 @@ namespace GoBetGoal_BackEnd.Controllers
                 return Content(HttpStatusCode.NotFound, error);
             }
 
-            var selectedAvatar = _db.Avatars.FirstOrDefault(a => a.Id == model.AvatarId && a.IsActive);
+            int avatarId;
+            if (!int.TryParse(model.AvatarId, out avatarId))
+            {
+                // 如果傳入的 string 無法被成功轉換為 int
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "AVATAR_NOT_FOUND",
+                    Message = "指定的頭像不存在。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
+            var selectedAvatar = _db.Avatars.FirstOrDefault(a => a.Id == avatarId && a.IsActive);
             if (selectedAvatar == null)
             {
                 var error = new ErrorResponseDto
@@ -208,7 +258,7 @@ namespace GoBetGoal_BackEnd.Controllers
 
             if (selectedAvatar.AvatarPrice > 0)
             {
-                bool userOwnsThisAvatar = _db.UserAvatars.Any(a => a.UserId == currentUserId && a.AvatarId == model.AvatarId);
+                bool userOwnsThisAvatar = _db.UserAvatars.Any(a => a.UserId == currentUserId && a.AvatarId == avatarId);
 
                 if (!userOwnsThisAvatar)
                 {
@@ -234,7 +284,7 @@ namespace GoBetGoal_BackEnd.Controllers
             }
 
             // 將新選擇的頭像標記為 true
-            var newCurrentAvatar = allUserAvatars.FirstOrDefault(ua => ua.AvatarId == model.AvatarId);
+            var newCurrentAvatar = allUserAvatars.FirstOrDefault(ua => ua.AvatarId == avatarId);
             // 理論上 newCurrentAvatar 不會是 null，因為我們在步驟 1 已經檢查過了
             if (newCurrentAvatar != null)
             {
@@ -305,8 +355,8 @@ namespace GoBetGoal_BackEnd.Controllers
                 TotalTrialCount = totalTrialCount,
                 LikedPostsCount = likedPostsCount,
                 FriendCount = friendCount,
-                PurchaseChallengeIds = purchaseChallengeIds,
-                PurchaseAvatarIds = purchaseAvatarIds
+                FriendState="self"
+               
 
                 // 注意：這裡不需要 FriendState，因為使用者看自己的個人檔案，這個欄位沒有意義
             };
@@ -318,8 +368,18 @@ namespace GoBetGoal_BackEnd.Controllers
         [HttpGet]
         [Route("api/users/{userId}")] // api/users/{id}
         [AllowAnonymous] // 允許訪客和會員存取
-        public IHttpActionResult GetUserProfile(Guid userId)
+        public IHttpActionResult GetUserProfile(string userId)
         {
+            // 步驟二：手動進行 Guid 格式驗證
+            if (!Guid.TryParse(userId, out Guid userGuid))
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "INVALID_USER_ID_FORMAT",
+                    Message = "提供的使用者 ID 格式不正確。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
             // 步驟 1：溫和地取得當前檢視者的 ID (訪客則為 null)
             Guid? viewerId = TryGetCurrentUserId();
 
@@ -327,7 +387,7 @@ namespace GoBetGoal_BackEnd.Controllers
             // 我們使用最相容的字串路徑 .Include()
             var targetUser = _db.Users
                  .Include(u => u.UserAvatars.Select(ua => ua.Avatar))
-                 .FirstOrDefault(u => u.Id == userId);
+                 .FirstOrDefault(u => u.Id == userGuid);
 
 
             // 步驟 3：如果找不到使用者，回傳 404 Not Found
@@ -384,24 +444,18 @@ namespace GoBetGoal_BackEnd.Controllers
         /// <summary>
         /// 輔助方法：根據目標使用者和檢視者，建立一個 UserProfileDto
         /// </summary>
-        private UserProfileDto CreateUserProfileDto(User targetUser, Guid? viewerId, List<FriendsRelationship> preloadedFriendships = null)
+        private PublicUserProfileDtoV2 CreateUserProfileDto(User targetUser, Guid? viewerId, List<FriendsRelationship> preloadedFriendships = null)
         {
-            var dto = new UserProfileDto
+            var dto = new PublicUserProfileDtoV2
             {
                 UserId = targetUser.Id,
                 NickName = targetUser.NickName,
-                BagelCount = targetUser.BagelCount,
-                CheatBlanketCount = targetUser.CheatBlanketCount,
                 CurrentAvatarUrl = targetUser.UserAvatars.FirstOrDefault(ua => ua.IsCurrent)?.Avatar.AvatarImagePath,
 
                 // 計算欄位 (分開查詢以確保效能和正確性)
                 TotalTrialCount = _db.TrialParticipants.Count(tp => tp.InviteeId == targetUser.Id && tp.Status == Status.accepted),
                 LikedPostsCount = _db.PostLikes.Count(like => like.Post.UserId == targetUser.Id),
-                FriendCount = _db.FriendsRelationships.Count(fr => (fr.UserId == targetUser.Id || fr.InviteeId == targetUser.Id) && fr.Status == Status.accepted),
-
-                // 購買項目
-                PurchaseChallengeIds = _db.UserTrialTemplates.Where(x => x.UserId == targetUser.Id).Select(x => x.TrialTemplateId).ToList(),
-                PurchaseAvatarIds = _db.UserAvatars.Where(x => x.UserId == targetUser.Id).Select(x => x.AvatarId).ToList(),
+                FriendCount = _db.FriendsRelationships.Count(fr => (fr.UserId == targetUser.Id || fr.InviteeId == targetUser.Id) && fr.Status == Status.accepted),              
 
                 // 計算好友狀態
                 FriendState = GetFriendState(viewerId, targetUser.Id, preloadedFriendships)

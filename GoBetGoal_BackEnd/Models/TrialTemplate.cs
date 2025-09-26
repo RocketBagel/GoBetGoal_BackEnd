@@ -65,6 +65,9 @@ namespace GoBetGoal_BackEnd.Models
         [StringLength(50)]
         public string CardColor { get; set; }
 
+        [StringLength(50)]
+        public string AiType { get; set; }
+
         //[Required]
         //public bool IsActive { get; set; } = true;
 

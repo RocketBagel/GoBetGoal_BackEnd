@@ -242,6 +242,14 @@
     <Compile Include="Migrations\202509060443373_AdjustUsersModelForGoogleLogin.Designer.cs">
       <DependentUpon>202509060443373_AdjustUsersModelForGoogleLogin.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202509231237459_AddAiTypeToTrialTemplateModel.cs" />
+    <Compile Include="Migrations\202509231237459_AddAiTypeToTrialTemplateModel.Designer.cs">
+      <DependentUpon>202509231237459_AddAiTypeToTrialTemplateModel.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202509250713206_DeleteAiRelatedColumnInStageModel.cs" />
+    <Compile Include="Migrations\202509250713206_DeleteAiRelatedColumnInStageModel.Designer.cs">
+      <DependentUpon>202509250713206_DeleteAiRelatedColumnInStageModel.cs</DependentUpon>
+    </Compile>
     <Compile Include="Models\Converters\StrictIntConverter.cs" />
     <Compile Include="Models\DTOs\AchievementDto.cs" />
     <Compile Include="Models\DTOs\ForgotPasswordRequestDto.cs" />
@@ -255,6 +263,7 @@
     <Compile Include="Models\DTOs\NotificationCenterDto.cs" />
     <Compile Include="Models\DTOs\NotificationDto.cs" />
     <Compile Include="Models\DTOs\PublicUserProfileDto.cs" />
+    <Compile Include="Models\DTOs\PublicUserProfileDtoV2.cs" />
     <Compile Include="Models\DTOs\PurchaseSuccessDto.cs" />
     <Compile Include="Controllers\TrialController.cs" />
     <Compile Include="Controllers\TrialsController.cs" />
@@ -347,6 +356,7 @@
     <Compile Include="Models\UserAvatar.cs" />
     <Compile Include="Models\UserStage.cs" />
     <Compile Include="Models\UserTrialTemplate.cs" />
+    <Compile Include="Models\Validations\NicknameLengthAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Security\JwtAuthFilter.cs" />
     <Compile Include="Security\JwtAuthUtility.cs" />
@@ -545,6 +555,12 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202509060443373_AdjustUsersModelForGoogleLogin.resx">
       <DependentUpon>202509060443373_AdjustUsersModelForGoogleLogin.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202509231237459_AddAiTypeToTrialTemplateModel.resx">
+      <DependentUpon>202509231237459_AddAiTypeToTrialTemplateModel.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202509250713206_DeleteAiRelatedColumnInStageModel.resx">
+      <DependentUpon>202509250713206_DeleteAiRelatedColumnInStageModel.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
