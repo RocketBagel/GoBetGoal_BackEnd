@@ -258,9 +258,31 @@ namespace GoBetGoal_BackEnd.Controllers
         }
 
         [HttpPost]
-        [Route("api/trial/{trialId}/stage/{stageId}/use-cheat-blanket")]
-        public IHttpActionResult UseCheatBlanket(int trialId, int stageId)
+        [Route("api/trial/{trialIdInput}/stage/{stageIdInput}/use-cheat-blanket")]
+        public IHttpActionResult UseCheatBlanket(string trialIdInput, string stageIdInput)
         {
+            int trialId;
+            if (!int.TryParse(trialIdInput, out trialId))
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "TRIAL_NOT_FOUND",
+                    Message = "指定的試煉不存在。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
+            int stageId;
+            if (!int.TryParse(stageIdInput, out stageId))
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "STAGE_NOT_FOUND",
+                    Message = "指定的關卡不存在。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
             Guid currentUserId = GetCurrentUserId();
 
             var user = _db.Users.Find(currentUserId);
