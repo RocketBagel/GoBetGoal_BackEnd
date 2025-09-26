@@ -224,13 +224,17 @@ namespace GoBetGoal_BackEnd.Controllers
         public IHttpActionResult ReturnURL(string orderNo)
         {
             string tradeInfo = null;
-     
+            string PaymentStatus = null;
+
             try
             {
                 if (HttpContext.Current.Request.HttpMethod.Equals("POST", StringComparison.OrdinalIgnoreCase))
                 {
                     // POST 取 x-www-form-urlencoded
                     //tradeInfo = HttpContext.Current.Request.Form["TradeInfo"];
+                    PaymentStatus = HttpContext.Current.Request.Unvalidated.Form["Status"] 
+                     ?? HttpContext.Current.Request.Form["Status"]
+                     ?? HttpContext.Current.Request.Params["Status"];
                     tradeInfo = HttpContext.Current.Request.Unvalidated.Form["TradeInfo"]
                      ?? HttpContext.Current.Request.Form["TradeInfo"]
                      ?? HttpContext.Current.Request.Params["TradeInfo"];
@@ -241,6 +245,7 @@ namespace GoBetGoal_BackEnd.Controllers
                 {
                     // GET 取 query string
                     tradeInfo = HttpContext.Current.Request.QueryString["TradeInfo"];
+                    PaymentStatus = HttpContext.Current.Request.QueryString["Status"];
                     WriteLog($"return_TradeInfo: GET:{tradeInfo}");
                 }
 
@@ -251,8 +256,8 @@ namespace GoBetGoal_BackEnd.Controllers
 
                 //解密 TradeInfo
                 var decrypted = "";
-                try
-                {
+                //try
+                //{
                     //測試用
                     if (tradeInfo == "test")
                     {
@@ -264,11 +269,11 @@ namespace GoBetGoal_BackEnd.Controllers
                         decrypted = DecryptAES(tradeInfo);
                         WriteLog($"ReturnURL:{decrypted}");
                     }
-                }
-                catch (Exception ex)
-                {
-                    return ReturnFailPage(orderNo, $"ReturnURL 解密失敗: {ex.Message}\n{ex.StackTrace}", isError: true);
-                }
+                //}
+                //catch (Exception ex)
+                //{
+                //    return ReturnFailPage(orderNo, $"ReturnURL 解密失敗: {ex.Message}\n{ex.StackTrace}", isError: true);
+                //}
 
                 //解析 JSON
                 TradeInfoResponseDto result = null;
@@ -276,14 +281,16 @@ namespace GoBetGoal_BackEnd.Controllers
                 try
                 {
                     result = JsonConvert.DeserializeObject<TradeInfoResponseDto>(decrypted);
-                    if (result == null || result.Result == null)
-                    { 
-                        return ReturnFailPage(orderNo, "ReturnURL: TradeInfo format invalid (result == null)", isError: false);
-                    }
+                  
+                    //if (result == null || result.Result == null)
+                    //{
+                    //    return ReturnFailPage(orderNo, "ReturnURL: TradeInfo format invalid (result == null)", isError: false);
+                    //}
                 }
                 catch (Exception ex)
                 {
-                    return ReturnFailPage(orderNo, $"ReturnURL 解析 JSON 失敗: {ex.Message}\n{ex.StackTrace}", isError: true);
+                    WriteLog($"ReturnURL 解析 JSON 失敗: {ex.Message}\n{ex.StackTrace}");
+                    //return ReturnFailPage(orderNo, $"ReturnURL 解析 JSON 失敗: {ex.Message}\n{ex.StackTrace}", isError: true);
                 }
 
 
@@ -313,7 +320,7 @@ namespace GoBetGoal_BackEnd.Controllers
                 //    redirectUrl = $"{baseUrl}{path}{query}";
                 //}
 
-                if (status=="success")
+                if (status=="success" || PaymentStatus == "SUCCESS")
                 {
                     //回傳 HTML + JS 導向 交易成功頁，並顯示提示訊息
                     return ReturnSuccessPage(orderNo, baseUrl, path);
