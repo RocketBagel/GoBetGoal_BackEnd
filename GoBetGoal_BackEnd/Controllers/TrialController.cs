@@ -17,10 +17,20 @@ namespace GoBetGoal_BackEnd.Controllers
         private readonly Context _db = new Context();
 
         [HttpGet]
-        [Route("api/trial/details/{trialId}")]
+        [Route("api/trial/details/{trialIdInput}")]
         [AllowAnonymous] // *** 標記為公開，允許訪客存取 ***
-        public IHttpActionResult GetTrialDetails(int trialId)
+        public IHttpActionResult GetTrialDetails(string trialIdInput)
         {
+            int trialId;
+            if (!int.TryParse(trialIdInput, out trialId))
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "TRIAL_NOT_FOUND",
+                    Message = "指定的試煉不存在。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
             // 1) 嘗試取得目前檢視者（登入者）的 UserId，未登入則為 null（可用於日後個人化資料）
             Guid? viewerId = TryGetCurrentUserId();
 
@@ -36,7 +46,7 @@ namespace GoBetGoal_BackEnd.Controllers
                     ErrorCode = "TRIAL_NOT_FOUND",
                     Message = "指定的試煉不存在。"
                 };
-                return Content(HttpStatusCode.NotFound, error);
+                return Content(HttpStatusCode.BadRequest, error);
             }
 
             // 3. 把這個試煉的所有 Stage (模板 + UserStages) 查出來
@@ -84,6 +94,7 @@ namespace GoBetGoal_BackEnd.Controllers
             trialTemplateDto.TrialTemplatePrice = trial.TrialTemplate.TrialTemplatePrice;
             trialTemplateDto.CardImagePath = trial.TrialTemplate.CardImagePath;
             trialTemplateDto.CardColor = trial.TrialTemplate.CardColor;
+            trialTemplateDto.AiType = trial.TrialTemplate.AiType;
 
             var trialStageDto = new List<TrialStageDto>();
 
@@ -142,12 +153,10 @@ namespace GoBetGoal_BackEnd.Controllers
                     }
                 }
 
-                var userProfileDto = new UserProfileDto();
+                var userProfileDto = new PublicUserProfileDtoV2();
 
                 userProfileDto.UserId = user.Id;
                 userProfileDto.NickName = user.NickName;
-                userProfileDto.BagelCount = user.BagelCount;
-                userProfileDto.CheatBlanketCount = user.CheatBlanketCount;
                 userProfileDto.TotalTrialCount = _db.TrialParticipants
         .Count(tp => tp.InviteeId == user.Id && tp.Status == Status.accepted);
                 userProfileDto.LikedPostsCount = _db.PostLikes
@@ -155,8 +164,6 @@ namespace GoBetGoal_BackEnd.Controllers
                 userProfileDto.FriendCount = _db.FriendsRelationships
         .Count(fr => (fr.UserId == user.Id || fr.InviteeId == user.Id)
                   && fr.Status == Status.accepted);
-               
-
                 userProfileDto.CurrentAvatarUrl = user.UserAvatars.Where(u => u.IsCurrent).Select(u => u.Avatar.AvatarImagePath).FirstOrDefault();
                 userProfileDto.FriendState = calculatedFriendState;
 
@@ -240,10 +247,10 @@ namespace GoBetGoal_BackEnd.Controllers
     .OrderBy(x => x.CreatedAt)    // 按時間排序
     .ToList();                     // 轉成 List，方便後續操作
 
-            var trialLikeDtos = trialLikes.Select(x => new TrialLikeDto
+            var trialLikeDtos = trialLikes.Select(x => new PublicUserProfileDto
             {
                 UserId = x.UserId,
-
+                NickName=x.User.NickName,
                 // 取 IsCurrent = true 的頭像，如果沒有就 null
                 CurrentAvatarUrl = x.User.UserAvatars
         .Where(a => a.IsCurrent)   // 篩選出目前使用的頭像

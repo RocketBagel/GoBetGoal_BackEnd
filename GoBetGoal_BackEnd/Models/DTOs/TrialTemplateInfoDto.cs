@@ -57,6 +57,9 @@ namespace GoBetGoal_BackEnd.Models.DTOs
         [JsonProperty("max_user")]
         public int MaxUser { get; set; }
 
+        [JsonProperty("ai_type")]
+        public string AiType { get; set; }
+
         /// <summary>
         /// 此試煉模板包含的所有關卡
         /// </summary>
