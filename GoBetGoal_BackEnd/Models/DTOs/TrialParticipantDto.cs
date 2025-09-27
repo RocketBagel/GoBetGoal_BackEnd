@@ -8,7 +8,7 @@ namespace GoBetGoal_BackEnd.Models.DTOs
     public class TrialParticipantDto
     {
         [JsonProperty("user_info")]
-        public UserProfileDto UserInfo { get; set; } // 注意：UserProfileDto 也需要修改
+        public PublicUserProfileDtoV2 UserInfo { get; set; } 
 
         [JsonProperty("joined_at")]
         public DateTime JoinedAt { get; set; }
