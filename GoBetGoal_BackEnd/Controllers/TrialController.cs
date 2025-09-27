@@ -385,9 +385,20 @@ namespace GoBetGoal_BackEnd.Controllers
         /// </summary>
         /// <param name="id">要加入圍觀的試煉 ID</param>
         [HttpPost]
-        [Route("api/trial/{trialId}/like")]
-        public IHttpActionResult LikeTrial(int trialId)
+        [Route("api/trial/{trialIdInput}/toggle-like")]
+        public IHttpActionResult ToggleLikeTrial(string trialIdInput)
         {
+            int trialId;
+            if (!int.TryParse(trialIdInput, out trialId))
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "TRIAL_NOT_FOUND",
+                    Message = "指定的試煉不存在。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
             // 1. 取得當前使用者 ID (此 API 需要驗證)
             Guid currentUserId = GetCurrentUserId();
 
@@ -397,32 +408,47 @@ namespace GoBetGoal_BackEnd.Controllers
             var trial = _db.Trials.Find(trialId);
             if (trial == null)
             {
-                return Content(HttpStatusCode.NotFound, new ErrorResponseDto { ErrorCode = "TRIAL_NOT_FOUND", Message = "指定的試煉不存在。" });
+                return Content(HttpStatusCode.BadRequest, new ErrorResponseDto { ErrorCode = "TRIAL_NOT_FOUND", Message = "指定的試煉不存在。" });
             }
 
             // b. 檢查使用者是否已經圍觀過此試煉，避免重複加入
-            bool alreadyLiked = _db.TrialLikes.Any(tl => tl.TrialId == trialId && tl.UserId == currentUserId);
-            if (alreadyLiked)
-            {
-                // 使用 409 Conflict 表示這個操作與現有狀態衝突
-                return Content(HttpStatusCode.Conflict, new ErrorResponseDto { ErrorCode = "ALREADY_LIKED", Message = "您已經在圍觀列表中了。" });
-            }
+            //bool alreadyLiked = _db.TrialLikes.Any(tl => tl.TrialId == trialId && tl.UserId == currentUserId);
+            //if (alreadyLiked)
+            //{
+            //    // 使用 409 Conflict 表示這個操作與現有狀態衝突
+            //    return Content(HttpStatusCode.Conflict, new ErrorResponseDto { ErrorCode = "ALREADY_LIKED", Message = "您已經在圍觀列表中了。" });
+            //}
 
             // c. (可選但建議) 檢查使用者是否為參與者，參與者可能不能同時是圍觀者
-            bool isParticipant = _db.TrialParticipants.Any(p => p.TrialId == trialId && p.InviteeId == currentUserId && p.Status == Status.accepted);
-            if (isParticipant)
+            //bool isParticipant = _db.TrialParticipants.Any(p => p.TrialId == trialId && p.InviteeId == currentUserId && p.Status == Status.accepted);
+            //if (isParticipant)
+            //{
+            //    return Content(HttpStatusCode.BadRequest, new ErrorResponseDto { ErrorCode = "PARTICIPANT_CANNOT_LIKE", Message = "您已是此試煉的參與者，無法加入圍觀。" });
+            //}
+
+            // 3. 尋找使用者是否已經「喜歡」過此試煉
+            var existingLike = _db.TrialLikes.FirstOrDefault(tl => tl.TrialId == trialId && tl.UserId == currentUserId);
+
+            bool isCurrentlyLiked;
+
+            if (existingLike != null)
             {
-                return Content(HttpStatusCode.BadRequest, new ErrorResponseDto { ErrorCode = "PARTICIPANT_CANNOT_LIKE", Message = "您已是此試煉的參與者，無法加入圍觀。" });
+                // 如果找到了紀錄，代表使用者要「取消喜歡」
+                _db.TrialLikes.Remove(existingLike);
+                isCurrentlyLiked = false; // 操作後的狀態是「不喜歡」
+            }
+            else
+            {
+                // 如果沒找到紀錄，代表使用者要「加入喜歡」
+                var newLike = new TrialLike
+                {
+                    UserId = currentUserId,
+                    TrialId = trialId,
+                };
+                _db.TrialLikes.Add(newLike);
+                isCurrentlyLiked = true; // 操作後的狀態是「喜歡」
             }
 
-            // --- 3. 執行核心操作 ---
-
-            var newLike = new TrialLike
-            {
-                UserId = currentUserId,
-                TrialId = trialId
-            };
-            _db.TrialLikes.Add(newLike);
 
             try
             {
@@ -435,11 +461,13 @@ namespace GoBetGoal_BackEnd.Controllers
 
             // 4. 準備成功的回應
             //    在儲存後，重新計算一次總數，確保資料最新
-            //var newLikeCount = _db.TrialLikes.Count(tl => tl.TrialId == trialId);
+            var newLikeCount = _db.TrialLikes.Count(tl => tl.TrialId == trialId);
 
-            var successResponse = new SuccessResponseDto
+            var successResponse = new ToggleLikeResponseDto
             {
-                Message = "成功加入圍觀！",
+                Message = isCurrentlyLiked ? "成功加入圍觀！" : "已取消圍觀。",
+                IsLiked = isCurrentlyLiked, // 回傳最終狀態
+                NewLikeCount = newLikeCount
             };
 
             return Ok(successResponse);

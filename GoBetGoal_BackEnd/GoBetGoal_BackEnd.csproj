@@ -328,6 +328,7 @@
     <Compile Include="Models\DTOs\SuccessResponseDto.cs" />
     <Compile Include="Models\DTOs\SupabaseAuthUserDto.cs" />
     <Compile Include="Models\DTOs\SupabaseOrderDto.cs" />
+    <Compile Include="Models\DTOs\ToggleLikeResponseDto.cs" />
     <Compile Include="Models\DTOs\TrialDetailDto.cs" />
     <Compile Include="Models\DTOs\TrialResultDto.cs" />
     <Compile Include="Models\DTOs\TrialResultInfoDto.cs" />
