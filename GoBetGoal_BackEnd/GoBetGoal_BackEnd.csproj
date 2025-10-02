@@ -407,6 +407,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Security\JwtAuthFilter.cs" />
     <Compile Include="Security\JwtAuthUtility.cs" />
+    <Compile Include="Services\AiVerificationService.cs" />
     <Compile Include="Services\ChallengeDbService.cs" />
     <Compile Include="Services\ChallengeHelper.cs" />
     <Compile Include="Services\CloudinaryService.cs" />

@@ -3,6 +3,7 @@ using CloudinaryDotNet.Actions;
 using System;
 using System.Configuration;
 using System.IO;
+using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 
 namespace GoBetGoal_BackEnd.Services
@@ -35,23 +36,39 @@ namespace GoBetGoal_BackEnd.Services
         /// <param name="fileName">原始檔名</param>
         /// <param name="folderPath">要儲存在 Cloudinary 上的資料夾路徑</param>
         /// <returns>上傳結果</returns>
-        public async Task<ImageUploadResult> UploadImageAsync(byte[] fileBytes, string fileName, string folderPath)
+        public async Task<(string SecureUrl, string PublicId)> UploadImageAsync(byte[] fileBytes, string fileName, string folderPath)
         {
+            // 使用 'using' 區塊來確保 MemoryStream 會被自動關閉和釋放資源
             using (var stream = new MemoryStream(fileBytes))
             {
+               
                 var uploadParams = new ImageUploadParams()
                 {
-                    // 使用 MemoryStream 來上傳
+                    // 現在 'stream' 變數是存在的，並且是從 fileBytes 建立的
                     File = new FileDescription(fileName, stream),
-                    // 設定在 Cloudinary 上的儲存路徑和檔名
-                    // PublicId 會是 "folder/path/random_guid"，確保檔名唯一
-                    PublicId = $"{folderPath}/{Path.GetFileNameWithoutExtension(fileName)}_{Guid.NewGuid()}"
+                    // ✅ 這裡用 Folder 指定「資料夾」
+                    Folder = folderPath,
+                    // ✅ PublicId 建議只放檔名，避免混淆
+                    PublicId = $"{Path.GetFileNameWithoutExtension(fileName)}_{Guid.NewGuid()}"
                 };
 
-                // 執行上傳
                 var uploadResult = await _cloudinary.UploadAsync(uploadParams);
-                return uploadResult;
+
+                // 建議加上錯誤檢查
+                if (uploadResult.Error != null)
+                {
+                    throw new Exception($"Cloudinary upload failed: {uploadResult.Error.Message}");
+                }
+
+                return (uploadResult.SecureUrl.ToString(), uploadResult.PublicId);
             }
+        }
+
+        // 新增刪除方法
+        public async Task<DeletionResult> DeleteImageAsync(string publicId)
+        {
+            var deletionParams = new DeletionParams(publicId);
+            return await _cloudinary.DestroyAsync(deletionParams);
         }
     }
 }
