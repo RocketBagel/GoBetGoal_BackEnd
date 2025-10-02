@@ -1,14 +1,17 @@
-﻿using GoBetGoal_BackEnd.Enums;
+﻿using CloudinaryDotNet.Actions;
+using GoBetGoal_BackEnd.Enums;
 using GoBetGoal_BackEnd.Models;
 using GoBetGoal_BackEnd.Models.DTOs;
+using GoBetGoal_BackEnd.Services;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
 using System.Web.Http;
-using static Google.Apis.Requests.RequestError;
 
 namespace GoBetGoal_BackEnd.Controllers
 {
@@ -250,7 +253,7 @@ namespace GoBetGoal_BackEnd.Controllers
             var trialLikeDtos = trialLikes.Select(x => new PublicUserProfileDto
             {
                 UserId = x.UserId,
-                NickName=x.User.NickName,
+                NickName = x.User.NickName,
                 // 取 IsCurrent = true 的頭像，如果沒有就 null
                 CurrentAvatarUrl = x.User.UserAvatars
         .Where(a => a.IsCurrent)   // 篩選出目前使用的頭像
@@ -489,7 +492,7 @@ namespace GoBetGoal_BackEnd.Controllers
             //}
 
             int trialId;
-            if(!int.TryParse(trialIdInput, out trialId))
+            if (!int.TryParse(trialIdInput, out trialId))
             {
                 var error = new ErrorResponseDto
                 {
@@ -657,7 +660,7 @@ namespace GoBetGoal_BackEnd.Controllers
             var transaction = new BagelTransaction
             {
                 UserId = currentUserId,
-                TransactionType = TransactionType.試煉押金, 
+                TransactionType = TransactionType.試煉押金,
                 ProductType = ProductType.Bagel,   // 商品類型：試煉押金
                 ReferenceId = trial.Id,                   // 關聯的試煉 ID
                 ItemName = "退出試煉退還押金",
@@ -758,7 +761,7 @@ namespace GoBetGoal_BackEnd.Controllers
 
                 leaderboardEntries.Add(new LeaderboardEntryDto
                 {
-                    UserInfo = new PublicUserProfileDto { UserId = p.InviteeId, NickName = p.Invitee.NickName, CurrentAvatarUrl=p.Invitee.UserAvatars.Where(a=>a.IsCurrent==true).Select(a=>a.Avatar.AvatarImagePath).FirstOrDefault()},
+                    UserInfo = new PublicUserProfileDto { UserId = p.InviteeId, NickName = p.Invitee.NickName, CurrentAvatarUrl = p.Invitee.UserAvatars.Where(a => a.IsCurrent == true).Select(a => a.Avatar.AvatarImagePath).FirstOrDefault() },
                     CompleteStageCount = completeCount,
                     CheatBlanketUsedCount = cheatCount,
                 });
@@ -812,14 +815,229 @@ namespace GoBetGoal_BackEnd.Controllers
                     .Where(us => us.UploadImagePath != null && (us.Status == Status.pass))
                     .SelectMany(us => JsonConvert.DeserializeObject<List<string>>(us.UploadImagePath))
                     .ToList(),
-                    RewardAmount = _db.BagelTransactions.Where(x => x.UserId == currentUserId && x.TransactionType == TransactionType.試煉結算 && x.ProductType == ProductType.Bagel && x.ReferenceId==trial.Id).Select(x=>x.Amount).FirstOrDefault()
+                    RewardAmount = _db.BagelTransactions.Where(x => x.UserId == currentUserId && x.TransactionType == TransactionType.試煉結算 && x.ProductType == ProductType.Bagel && x.ReferenceId == trial.Id).Select(x => x.Amount).FirstOrDefault()
                 }
             };
 
             return Ok(myResult);
         }
 
-     
+
+        // 建立一個 CloudinaryService 的實體
+        private readonly CloudinaryService _cloudinaryService = new CloudinaryService();
+        // 建立一個 AiVerificationService 的實體
+        private readonly AiVerificationService _aiService = new AiVerificationService();
+
+        [HttpPost]
+        [Route("api/trial/{trialIdInput}/stage/{stageIdInput}/submit-images")]
+        public async Task<IHttpActionResult> SubmitStageImages(string trialIdInput, string stageIdInput)
+        {
+            int trialId;
+            if (!int.TryParse(trialIdInput, out trialId))
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "TRIAL_NOT_FOUND",
+                    Message = "指定的試煉不存在。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
+            int stageId;
+            if (!int.TryParse(stageIdInput, out stageId))
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "STAGE_NOT_FOUND",
+                    Message = "指定的關卡不存在。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
+
+            // --- 步驟 1: 驗證使用者身份 ---
+            Guid currentUserId = GetCurrentUserId();
+
+            // --- 步驟 1: 找出對應的 UserStage 紀錄 ---
+            // 我們將這段邏輯提前，因為後續所有操作都需要它
+            var userStage = _db.UserStages.FirstOrDefault(us =>
+                us.TrialId == trialId &&
+                us.UserId == currentUserId &&
+                us.StageId == stageId);
+
+            // 如果這是使用者第一次對此關卡進行操作，先建立一筆紀錄
+            if (userStage == null)
+            {
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "USERSTAGE_NOT_FOUND",
+                    Message = "指定的使用者關卡不存在。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
+            // --- *** 步驟 2: 檢查剩餘次數 (核心修改點) *** ---
+            if (userStage.ChanceRemain <= 0)
+            {
+                return Content(HttpStatusCode.Forbidden, new ErrorResponseDto
+                {
+                    ErrorCode = "NO_CHANCES_REMAINING",
+                    Message = " AI 審核次數已用完。"
+                });
+            }
+
+            // --- 步驟 2: 檢查請求的基本格式 ---
+            // --- 【最佳實踐建議】新增一個 try-catch-finally 區塊來處理所有後續流程 ---
+            // 這可以捕捉到 Cloudinary 或 AI 服務的突發錯誤，並確保資料庫操作的完整性
+            List<string> allPublicIds = new List<string>(); // 將 publicIds 宣告在 try 區塊外，以便 catch 中也能存取
+           
+                // 檢查請求的 Content-Type 是否為 multipart/form-data，如果不是，代表前端傳送的格式根本不對
+
+                if (!Request.Content.IsMimeMultipartContent())
+            {
+                // 回傳 415 Unsupported Media Type 錯誤，並使用我們自訂的 DTO
+                // *** 修正 #1：使用 ErrorResponseDto ***
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "UNSUPPORTED_MEDIA_TYPE",
+                    Message = "請求的內容格式不正確。"
+                };
+                return Content(HttpStatusCode.UnsupportedMediaType, error);
+            }
+
+            // --- 步驟 3: 接收前端傳來的所有檔案 ---
+
+            // 建立一個提供者，它會將上傳的檔案暫存在伺服器的記憶體中
+            var provider = new MultipartMemoryStreamProvider();
+            // `await` 會在此處等待，直到所有檔案都接收完畢
+            await Request.Content.ReadAsMultipartAsync(provider);
+
+            // 接收完畢後，檢查是否有包含任何檔案內容
+            if (!provider.Contents.Any())
+            {
+                // 如果一個檔案都沒有，回傳 400 Bad Request 錯誤
+                var error = new ErrorResponseDto
+                {
+                    ErrorCode = "NO_FILES_UPLOADED",
+                    Message = "請求中未包含任何檔案。"
+                };
+                return Content(HttpStatusCode.BadRequest, error);
+            }
+
+                var stage = _db.Stages.Find(stageId);
+
+                var stageDescriptions = JsonConvert.DeserializeObject<List<string>>(stage.StageDescription ?? "[]");
+
+                // b. (防呆) 檢查收到的圖片數量是否符合關卡要求
+                if (provider.Contents.Count != stageDescriptions.Count)
+                {
+                    var error = new ErrorResponseDto
+                    {
+                        ErrorCode = "IMAGE_COUNT_MISMATCH",
+                        Message = "圖片數量不符。"
+                    };
+                    return Content(HttpStatusCode.BadRequest, error);
+                }
+
+                // --- 步驟 4: 將檔案上傳到 Cloudinary 並保持順序 ---
+
+                // 建立一個非同步任務列表，用來存放每一個「上傳到 Cloudinary」的任務
+                var uploadTasks = provider.Contents
+                // 核心排序邏輯：根據前端傳送時設定的 form-data `name` ("image_0", "image_1"...) 進行排序
+                .OrderBy(c => c.Headers.ContentDisposition.Name)
+                .Select(async file =>
+                {
+                    // 從檔案內容中讀取位元組資料
+                    var fileBytes = await file.ReadAsByteArrayAsync();
+                    // 取得原始檔名
+                    var fileName = file.Headers.ContentDisposition.FileName.Trim('\"');
+
+                    // 定義在 Cloudinary 上的儲存路徑，確保每個使用者的檔案都分開
+                    var folderPath = $"trials/{trialId}/stages/{stageId}/{currentUserId}";
+
+                    // 呼叫我們的 Cloudinary 服務來上傳，這是一個非同步操作
+                    var (secureUrl, publicId) = await _cloudinaryService.UploadImageAsync(fileBytes, fileName, folderPath);
+
+                    // 可以在這裡加上更完整的錯誤處理，例如拋出例外
+                    if (string.IsNullOrEmpty(secureUrl))
+                    {
+                        throw new Exception($"File '{fileName}' failed to upload.");
+                    }
+
+                    return new { SecureUrl = secureUrl, PublicId = publicId };
+
+
+                });
+
+            // 1. 使用 Task.WhenAll 等待所有上傳任務完成，並取得結果陣列
+            //    uploadResults 將會是一個陣列，裡面每個元素都是 { SecureUrl = "...", PublicId = "..." }
+            var uploadResults = await Task.WhenAll(uploadTasks);
+            // 2. 從結果陣列中，分別取出 SecureUrl 和 PublicId 到各自的 List
+            var allUploadedUrls = uploadResults.Select(r => r.SecureUrl).ToList();
+            allPublicIds = uploadResults.Select(r => r.PublicId).ToList();
+
+
+            // --- 步驟 5: 執行 AI 驗證 (使用您之前的邏輯) ---
+
+            // a. 從資料庫取得此關卡的驗證規則
+            var trial = _db.Trials.FirstOrDefault(t => t.Id == trialId);
+
+            if (stage.TrialTemplateId != trial.TrialTemplateId)
+            {
+                return Content(HttpStatusCode.BadRequest, new ErrorResponseDto
+                {
+                    ErrorCode = "STAGE_TRIAL_MISMATCH",
+                    Message = "關卡與試煉不匹配。"
+                });
+            }
+
+           
+
+            var generalRules = JsonConvert.DeserializeObject<List<string>>(trial.TrialTemplate.TrialRule ?? "[]");
+            var aiType = trial.TrialTemplate.AiType;
+
+            // c. 呼叫 AI 服務進行驗證
+            List<ImageResult> verificationResults = await _aiService.VerifyImagesAsync(allUploadedUrls, stageDescriptions, generalRules, aiType);
+
+            // --- 步驟 D: 處理 AI 結果並更新資料庫 ---
+            var response = new AiVerificationResponseV2(); // 準備回傳給前端的物件
+                                                           // d. 檢查是否有任何一張圖片驗證失敗
+            bool isOverallPassed = verificationResults.All(r => r.IsCompliant && r.IsSafe);
+            response.OverallResult = isOverallPassed;
+            response.OverallMessage = isOverallPassed ? "恭喜！此關卡所有照片均審核通過！" : "很遺憾，此關卡有照片未通過審核。";
+            response.ImageResults = verificationResults;
+
+
+
+            // --- 步驟 6: 根據 AI 結果，更新資料庫 ---
+            userStage.ChanceRemain--;
+            response.ChanceRemain = userStage.ChanceRemain;
+
+            if (isOverallPassed)
+            {
+                // 如果驗證成功，儲存圖片 URL 列表
+                userStage.Status = Status.pass;
+                userStage.UploadImagePath = JsonConvert.SerializeObject(allUploadedUrls);
+                userStage.ImageUploadAt = DateTime.Now;
+            }
+            else
+            {
+                // 如果驗證失敗，更新狀態，但不儲存 URL
+                userStage.Status = Status.fail;
+                userStage.UploadImagePath = null;
+                // **核心**：呼叫刪除 API
+                var deleteTasks = allPublicIds.Select(id => _cloudinaryService.DeleteImageAsync(id));
+                await Task.WhenAll(deleteTasks); // 平行刪除
+            }
+
+                await _db.SaveChangesAsync(); // 使用非同步儲存
+
+                // --- 步驟 7: 回傳最終的審核結果給前端 ---
+                return Ok(response);
+        }
+           
+
+        
 
 
         // 釋放資料庫連線資源
