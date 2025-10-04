@@ -54,6 +54,7 @@ namespace GoBetGoal_BackEnd.Models.DTOs
         /// 對整個關卡結果的總結訊息
         /// </summary>
         public string OverallMessage { get; set; }
+        public int ChanceRemain { get; set; }
 
         /// <summary>
         // 針對每一張圖片的獨立、詳細的審核結果

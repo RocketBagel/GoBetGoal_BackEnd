@@ -81,7 +81,7 @@ namespace GoBetGoal_BackEnd.Controllers
             var avatarToPurchase = _db.Avatars.FirstOrDefault(a => a.Id == avatarId && a.IsActive);
             if (avatarToPurchase == null)
             {
-                return Content(HttpStatusCode.NotFound, new ErrorResponseDto
+                return Content(HttpStatusCode.BadRequest, new ErrorResponseDto
                 {
                     ErrorCode = "AVATAR_NOT_FOUND",
                     Message = "指定的頭像不存在。"

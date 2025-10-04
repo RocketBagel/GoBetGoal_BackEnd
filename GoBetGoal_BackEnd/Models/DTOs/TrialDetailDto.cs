@@ -41,5 +41,5 @@ public class TrialDetailDto
 
     // 假設前端圍觀者列表叫做 trial_likes
     [JsonProperty("trial_likes")]
-    public List<TrialLikeDto> TrialLikes { get; set; }
+    public List<PublicUserProfileDto> TrialLikes { get; set; }
 }

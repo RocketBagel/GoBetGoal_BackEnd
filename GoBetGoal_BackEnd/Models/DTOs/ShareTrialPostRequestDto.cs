@@ -18,6 +18,7 @@ namespace GoBetGoal_BackEnd.Models.DTOs
         /// <summary>
         /// (可選) 使用者額外上傳的封面照片 URL
         /// </summary>
+        [Url(ErrorMessage = "封面圖的路徑格式不正確")]
         public string CoverImageUrl { get; set; }
     }
 }
