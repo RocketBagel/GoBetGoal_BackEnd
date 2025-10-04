@@ -152,6 +152,7 @@ namespace GoBetGoal_BackEnd.Controllers
                     _context.FriendsRelationships.Add(newFriendInvitation);
                     _context.SaveChanges();
 
+
                     // 建立通知資料(受邀者)
                     var notifyInvitee = new Notification
                     {
@@ -164,6 +165,39 @@ namespace GoBetGoal_BackEnd.Controllers
                     };
                     _context.Notifications.Add(notifyInvitee);
                     _context.SaveChanges();
+
+
+            //// 建立通知資料(發送邀請者)
+            //var notifySender = new Notification
+            //{
+            //    ReceiverId = invitee.Id,   // 發送邀請者
+            //    SenderId = currentUserId,         // 來源是受邀者
+            //    NotificationType = NotificationType.friend_request_accept,
+            //    Content = $"{user.NickName} 已接受你的好友邀請。",
+            //    ReferenceId_Int = invitation.Id,  // 關聯到邀請紀錄
+            //    CreatedAt = DateTime.Now
+            //};
+
+            //// 建立通知資料(受邀者)
+            //var notifyInvitee = new Notification
+            //{
+            //    ReceiverId = invitation.InviteeId,    // 受邀者
+            //    SenderId = invitation.UserId,         // 來源是發送邀請者
+            //    NotificationType = NotificationType.friend_request_accept,
+            //    Content = $"你已成功與 {invitation.User.NickName} 成為好友。",
+            //    ReferenceId_Int = invitation.Id,
+            //    CreatedAt = DateTime.Now
+            //};
+
+            //_context.FriendsRelationships.Add(newFriendInvitation);
+            //_context.Notifications.Add(notifySender);
+            //_context.Notifications.Add(notifyInvitee);
+
+            //_context.SaveChanges();
+
+
+            //return Ok("已發出邀請");
+
 
                     transaction.Commit();
                     return Ok("已發出邀請");
