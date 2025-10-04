@@ -224,13 +224,17 @@ namespace GoBetGoal_BackEnd.Controllers
         public IHttpActionResult ReturnURL(string orderNo)
         {
             string tradeInfo = null;
-     
+            string PaymentStatus = null;
+
             try
             {
                 if (HttpContext.Current.Request.HttpMethod.Equals("POST", StringComparison.OrdinalIgnoreCase))
                 {
                     // POST 取 x-www-form-urlencoded
                     //tradeInfo = HttpContext.Current.Request.Form["TradeInfo"];
+                    PaymentStatus = HttpContext.Current.Request.Unvalidated.Form["Status"] 
+                     ?? HttpContext.Current.Request.Form["Status"]
+                     ?? HttpContext.Current.Request.Params["Status"];
                     tradeInfo = HttpContext.Current.Request.Unvalidated.Form["TradeInfo"]
                      ?? HttpContext.Current.Request.Form["TradeInfo"]
                      ?? HttpContext.Current.Request.Params["TradeInfo"];
@@ -241,12 +245,16 @@ namespace GoBetGoal_BackEnd.Controllers
                 {
                     // GET 取 query string
                     tradeInfo = HttpContext.Current.Request.QueryString["TradeInfo"];
+                    PaymentStatus = HttpContext.Current.Request.QueryString["Status"];
                     WriteLog($"return_TradeInfo: GET:{tradeInfo}");
                 }
 
                 if (string.IsNullOrEmpty(tradeInfo))
                 {
                     return ReturnFailPage(orderNo,"ReturnURL: No TradeInfo received", isError: false);
+                    //Trace.TraceWarning("ReturnURL: No TradeInfo received");
+                    //WriteLog("ReturnURL: No TradeInfo received:IsNullOrEmpty(tradeInfo)");
+                  
                 }
 
                 //解密 TradeInfo
@@ -264,11 +272,21 @@ namespace GoBetGoal_BackEnd.Controllers
                         decrypted = DecryptAES(tradeInfo);
                         WriteLog($"ReturnURL:{decrypted}");
                     }
+
+                //}
+                //catch (Exception ex)
+                //{
+                //    return ReturnFailPage(orderNo, $"ReturnURL 解密失敗: {ex.Message}\n{ex.StackTrace}", isError: true);
+                //}
                 }
                 catch (Exception ex)
                 {
-                    return ReturnFailPage(orderNo, $"ReturnURL 解密失敗: {ex.Message}\n{ex.StackTrace}", isError: true);
+                   
+                    Trace.TraceError($"ReturnURL 解密失敗: {ex.Message}\n{ex.StackTrace}");
+                    WriteLog($"ReturnURL 解密失敗: {ex.Message}\n{ex.StackTrace}");
+                    return BadRequest("Invalid TradeInfo format");
                 }
+
 
                 //解析 JSON
                 TradeInfoResponseDto result = null;
@@ -276,15 +294,29 @@ namespace GoBetGoal_BackEnd.Controllers
                 try
                 {
                     result = JsonConvert.DeserializeObject<TradeInfoResponseDto>(decrypted);
-                    if (result == null || result.Result == null)
-                    { 
-                        return ReturnFailPage(orderNo, "ReturnURL: TradeInfo format invalid (result == null)", isError: false);
-                    }
+                  
+                    //if (result == null || result.Result == null)
+                    //{
+                    //    return ReturnFailPage(orderNo, "ReturnURL: TradeInfo format invalid (result == null)", isError: false);
+                    //}
                 }
                 catch (Exception ex)
                 {
-                    return ReturnFailPage(orderNo, $"ReturnURL 解析 JSON 失敗: {ex.Message}\n{ex.StackTrace}", isError: true);
+                    WriteLog($"ReturnURL 解析 JSON 失敗: {ex.Message}\n{ex.StackTrace}");
+                    //return ReturnFailPage(orderNo, $"ReturnURL 解析 JSON 失敗: {ex.Message}\n{ex.StackTrace}", isError: true);
+                    if (result == null || result.Result == null)
+                    {
+                        Trace.TraceWarning("ReturnURL: TradeInfo format invalid");
+                        WriteLog($"ReturnURL: TradeInfo format invalid:result == null || result.Result == null");
+                        return BadRequest("Invalid TradeInfo format");
+                    }
                 }
+                //catch (Exception ex)
+                //{
+                //    Trace.TraceError($"ReturnURL 解析 JSON 失敗: {ex.Message}\n{ex.StackTrace}");
+                //    WriteLog($"ReturnURL 解析 JSON 失敗: {ex.Message}\n{ex.StackTrace}");
+                //    return BadRequest("Invalid TradeInfo format");
+                //}
 
 
                 //判斷交易狀態
@@ -304,6 +336,10 @@ namespace GoBetGoal_BackEnd.Controllers
                 //string redirectUrl;
                 //string html;
                 //redirectUrl =$"{baseUrl}";
+                string redirectUrl;
+                //string html;
+                redirectUrl = $"{baseUrl}";
+
                 //if (useHashRouter)
                 //{
                 //    redirectUrl = $"{baseUrl}/# {path}{query}";
@@ -313,21 +349,59 @@ namespace GoBetGoal_BackEnd.Controllers
                 //    redirectUrl = $"{baseUrl}{path}{query}";
                 //}
 
-                if (status=="success")
+                if (status=="success" || PaymentStatus == "SUCCESS")
                 {
                     //回傳 HTML + JS 導向 交易成功頁，並顯示提示訊息
                     return ReturnSuccessPage(orderNo, baseUrl, path);
+
+//                if (status=="success")
+//                {
+//                    //回傳 HTML + JS 導向 交易成功頁，並顯示提示訊息
+//                    html = $@"<html>
+//                                    <head>
+//                                        <meta charset='utf-8'/>
+//                                        <title>付款結果導向</title>
+//                                        <script>
+//                                            window.location.href = '{redirectUrl}{path}?status=success';
+//                                        </script>
+//                                    </head>
+//                                    <body>
+//                                        <p>付款結果處理中，請稍候...</p>
+//                                    </body>
+//                                 </html>";
+
                 }
                 else 
                 {
                     //回傳 HTML + JS 導向 交易失敗頁，並顯示提示訊息
+
                     return ReturnFailPage(orderNo,$"ReturnURL: Trade status not success. Status={status}, Message={message}",isError:false);
+
+                     //html = $@"<html>
+                     //               <head>
+                     //                   <meta charset='utf-8'/>
+                     //                   <title>付款結果導向</title>
+                     //                   <script>
+                     //                       window.location.href = '{redirectUrl}{path}?status=fail'; 
+                     //                   </script>
+                     //               </head>
+                     //               <body>
+                     //                   <p>付款結果處理中，請稍候...</p>
+                     //               </body>
+                     //            </html>";
                 }
     
             }catch (Exception ex)
             {
+
                 // 捕捉所有未預期錯誤，避免整個 API 500 
                 return ReturnFailPage(orderNo,$"ReturnURL 未預期錯誤: {ex.Message}\n{ex.StackTrace}",isError:true);
+
+                // 捕捉所有未預期錯誤，避免整個 API 500
+                //Trace.TraceError($"ReturnURL 未預期錯誤: {ex.Message}\n{ex.StackTrace}");
+                //WriteLog($"ReturnURL 未預期錯誤: {ex.Message}\n{ex.StackTrace}");
+                //return BadRequest("Server error processing TradeInfo");
+
             }
         }
 
@@ -338,11 +412,11 @@ namespace GoBetGoal_BackEnd.Controllers
         [HttpPost]
         [Route("api/payments/result/{orderNo}")]
         public async Task<IHttpActionResult> NotifyURL(string orderNo)
+
         {
 
             try
             {
-                // 藍新會以 form-data/ x-www-form-urlencoded 回傳
                 // 1. 取得 NotifyURL 的 raw form 資料
                 var form = HttpContext.Current.Request.Form;
                 string tradeInfoRaw = form["TradeInfo"];
@@ -380,9 +454,21 @@ namespace GoBetGoal_BackEnd.Controllers
                 }
                 else
                 {
+
                     // 解密失敗 → 用 OrderNo 直接更新
                     await UpdateOrderStatus(orderNo, status);
-     
+
+                    // 解密失敗 → fallback，用 created_at 最新一筆 pending 訂單
+                    //var lastOrder = await FindLastOrderFromSupabase();
+                    //if (lastOrder != null)
+                    //{
+                    //    await UpdateOrderStatus(lastOrder.order_no, status);
+                    //}
+                    //else
+                    //{
+                    //    System.Diagnostics.Debug.WriteLine("找不到任何 pending 訂單，無法更新狀態");
+                    //    WriteLog("找不到任何 pending 訂單，無法更新狀態");
+                    //}
                 }
                 return Ok("1|OK");
             }
@@ -455,21 +541,7 @@ namespace GoBetGoal_BackEnd.Controllers
             return Ok("1|OK");
         }
 
-        private void WriteLog(string text)
-        {
-            try
-            {
-                string path = @"C:\temp\notify_log.txt";
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
-
-                using (var sw = new StreamWriter(path, true, Encoding.UTF8))
-                {
-                    sw.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {text}");
-                }
-            }
-            catch { /* 防止 log 寫檔失敗影響交易流程 */ }
-        }
-
+     
 
         /// <summary>
         /// 產生交易失敗導向頁
@@ -535,6 +607,258 @@ namespace GoBetGoal_BackEnd.Controllers
             };
 
             return ResponseMessage(response);
+        }
+
+      
+        //[AllowAnonymous]
+        //[HttpPost, Route("api/payments/result/debug")]
+        //public IHttpActionResult NotifyURLDebug()
+        //{
+        //    try
+        //    {
+        //        // 1. 取得 POST 的 raw form data
+        //        string rawForm = HttpContext.Current.Request.Form.ToString();
+        //        WriteLog($"NotifyURLDebug: raw form data: {rawForm}");
+        //        Trace.TraceInformation($"NotifyURLDebug: raw form data: {rawForm}");
+
+        //        // 2. 解析 Query String
+        //        var parsed = HttpUtility.ParseQueryString(rawForm);
+
+        //        string status = parsed["Status"];
+        //        string merchantID = parsed["MerchantID"];
+        //        string version = parsed["Version"];
+        //        string tradeInfoHex = parsed["TradeInfo"]; // 加密內容
+        //        string tradeSha = parsed["TradeSha"];
+
+        //        WriteLog($"NotifyURLDebug: TradeInfo (Hex) length={tradeInfoHex?.Length}");
+        //        Trace.TraceInformation($"NotifyURLDebug: TradeInfo (Hex) length={tradeInfoHex?.Length}");
+
+        //        if (string.IsNullOrEmpty(tradeInfoHex))
+        //        {
+        //            WriteLog("NotifyURLDebug: TradeInfo is empty");
+        //            Trace.TraceWarning("NotifyURLDebug: TradeInfo is empty");
+        //            return Ok("1|OK");
+        //        }
+
+        //        // 3. 解密 TradeInfo Hex
+        //        string decryptedJson = DecryptAES(tradeInfoHex);
+        //        WriteLog($"NotifyURLDebug: Decrypted TradeInfo JSON: {decryptedJson}");
+        //        Trace.TraceInformation($"NotifyURLDebug: Decrypted TradeInfo JSON: {decryptedJson}");
+
+        //        // 4. 解析 JSON
+        //        var tradeDetail = JsonConvert.DeserializeObject<TradeInfoResponseDetail>(decryptedJson);
+        //        if (tradeDetail == null)
+        //        {
+        //            WriteLog("NotifyURLDebug: Failed to parse decrypted TradeInfo JSON");
+        //            Trace.TraceWarning("NotifyURLDebug: Failed to parse decrypted TradeInfo JSON");
+        //        }
+        //        else
+        //        {
+        //            WriteLog($"NotifyURLDebug: MerchantOrderNo={tradeDetail.MerchantOrderNo}, Amt={tradeDetail.Amt}, PaymentType={tradeDetail.PaymentType}");
+        //            Trace.TraceInformation($"NotifyURLDebug: MerchantOrderNo={tradeDetail.MerchantOrderNo}, Amt={tradeDetail.Amt}, PaymentType={tradeDetail.PaymentType}");
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        WriteLog($"NotifyURLDebug Exception: {ex.Message}\n{ex.StackTrace}");
+        //        Trace.TraceError($"NotifyURLDebug Exception: {ex.Message}\n{ex.StackTrace}");
+        //    }
+
+        //    return Ok("1|OK");
+        //}
+
+            //// 藍新會以 form-data/ x-www-form-urlencoded 回傳
+            //string rawBody = new StreamReader(HttpContext.Current.Request.InputStream).ReadToEnd();
+            //WriteLog($"Notify RawBody: {rawBody}");
+
+
+            //// 優先從 Form 取值
+            //string tradeInfo = HttpContext.Current.Request.Form["TradeInfo"];
+            //string tradeSha = HttpContext.Current.Request.Form["TradeSha"];
+            //string status = HttpContext.Current.Request.Form["Status"];
+
+
+            //// 如果 Form 取不到，再從 rawBody 手動解析
+            //if (string.IsNullOrEmpty(tradeInfo) && !string.IsNullOrEmpty(rawBody))
+            //{
+            //    var parsed = HttpUtility.ParseQueryString(rawBody);
+            //    tradeInfo = parsed["TradeInfo"];
+            //}
+
+            //// 有些情況 TradeInfo 會再被 UrlEncode 一次 → 需要解一次碼
+            //if (!string.IsNullOrEmpty(tradeInfo) && tradeInfo.Contains("%"))
+            //{
+            //    tradeInfo = HttpUtility.UrlDecode(tradeInfo);
+            //}
+            //WriteLog($"Notify TradeInfo(final): {tradeInfo}");
+
+
+            ////驗證 TradeSha
+            //string checkValue = $"HashKey={HashKey}&{tradeInfo}&HashIV={HashIV}";
+            //string sha256Value = GetSHA256(checkValue).ToUpper();
+
+            //if (sha256Value != tradeSha)
+            //{
+            //    WriteLog("success = false, message = TradeSha 驗證失敗");
+            //    return Json(new { success = false, message = "TradeSha 驗證失敗" });
+            //}
+
+
+
+
+            ////if (string.IsNullOrEmpty(tradeInfo))
+            ////{
+            ////    Trace.TraceWarning("NotifyURL: No TradeInfo received");
+            ////    WriteLog("NotifyURL: No TradeInfo received:string.IsNullOrEmpty(tradeInfo)");
+            ////    return Ok("1|OK");
+
+            ////}
+            ////string rawTradeInfo = HttpUtility.UrlDecode(tradeInfo);
+            ////WriteLog($"rawTradeInfo: {rawTradeInfo}");
+            //var result = null;
+            //string merchantOrderNo = null;
+            //WriteLog($"Notify TradeInfo Length={tradeInfo.Length}, EndsWith={tradeInfo.Substring(tradeInfo.Length - 20)}");
+
+            //try
+            //{
+
+
+            //    // 解析 JSON
+            //    string decrypted = DecryptAES(tradeInfo);
+            //    WriteLog($"Notify_Decrypted: {decrypted}");
+            //    result = JsonConvert.DeserializeObject<Dictionary<string, object>>(decrypted);
+            //    WriteLog($"Notify_result:{result}");
+            //    // 解析 JSON (測試用，直接把 TradeInfo 當明文JSON)
+            //    //result = JsonConvert.DeserializeObject<TradeInfoResponseDto>(tradeInfo);
+
+            //    if (result == null || result.Result == null)
+            //    {
+            //        Trace.TraceWarning("NotifyURL: No TradeInfo received");
+            //        WriteLog("NotifyURL: No TradeInfo received:result == null || result.Result == null");
+            //        return Ok("1|OK");
+
+            //    }
+
+            //    if (result.ContainsKey("MerchantOrderNo"))
+            //    {
+            //        merchantOrderNo = result["MerchantOrderNo"].ToString();
+            //        return Ok("1|OK");
+            //    }
+
+            //}
+            //catch (Exception ex)
+            //{
+            //    Trace.TraceError($"NotifyURL 解密/解析失敗: {ex.Message}\n{ex.StackTrace}");
+            //    WriteLog($"Notify解密/解析失敗: {ex.Message}\n{ex.StackTrace}");
+            //    return Ok("1|OK");
+            //}
+
+            ////更新資料庫訂單狀態、交易成功更新貝果數邏輯
+            ////string status = result.Status?.Trim().ToLower() ?? "fail";
+            //if (status == "success")
+            //{
+            //    try
+            //    {
+            //        //更新 Supabase 資料
+            //        using (var client = new HttpClient())
+            //        {
+            //            // Supabase 必要 Header
+            //            if (!client.DefaultRequestHeaders.Contains("apikey"))
+            //            {
+            //                client.DefaultRequestHeaders.Add("apikey", ConfigurationManager.AppSettings["Supabase_ApiKey"]);
+            //                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ConfigurationManager.AppSettings["Supabase_ApiKey"]);
+            //            }
+
+            //            // 更新deposit.status的欄位
+            //            var newStatus = status;
+            //            var payload = new { status = newStatus };
+            //            var json = JsonConvert.SerializeObject(payload);
+            //            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+
+            //            // PATCH 請求更新status欄位
+            //            var patchDeposit = new HttpRequestMessage(new HttpMethod("PATCH"), $"{SupabaseUrl}/rest/v1/deposit?order_no=eq.{result.Result.MerchantOrderNo}")
+            //            {
+            //                Content = content
+            //            };
+
+            //            var responseDeposit = client.SendAsync(patchDeposit).Result;
+            //            responseDeposit.EnsureSuccessStatusCode();
+
+            //            //交易成功才加 candy_count
+            //            if (newStatus == "success")
+            //            {
+            //                // 查詢這筆訂單的 user_id 和 get_bagel
+            //                var getDeposit = client.GetAsync($"{SupabaseUrl}/rest/v1/deposit?order_no=eq.{result.Result.MerchantOrderNo}&select=user_id,get_bagel").Result;
+
+            //                var depositJson = getDeposit.Content.ReadAsStringAsync().Result;
+            //                var depositArray = JArray.Parse(depositJson);
+
+            //                if (depositArray != null && depositArray.Count > 0)
+            //                {
+            //                    var userId = depositArray[0]["user_id"]?.ToString();
+            //                    var getBagel = depositArray[0]["get_bagel"]?.Value<int>() ?? 0;
+            //                    WriteLog($"{userId}:{getBagel}");
+
+            //                    if (!string.IsNullOrEmpty(userId) && getBagel > 0)
+            //                    {
+            //                        // 更新 user_info.candy_count = candy_count + get_bagel
+            //                        // Supabase REST API 沒辦法直接做 += ，呼叫 RPC function 增加 candy_count值
+            //                        var rpcPayload = new { the_user = userId, amount = getBagel };
+            //                        var jsonRpc = JsonConvert.SerializeObject(rpcPayload);
+            //                        var contentRpc = new StringContent(jsonRpc, Encoding.UTF8, "application/json");
+
+            //                        var rpcRequest = new HttpRequestMessage(HttpMethod.Post, $"{SupabaseUrl}/rest/v1/rpc/increment_bagel")
+            //                        {
+            //                            Content = contentRpc
+            //                        };
+
+
+            //                        var rpcResponse = client.SendAsync(rpcRequest).Result;
+            //                        rpcResponse.EnsureSuccessStatusCode();
+            //                    }
+            //                    else
+            //                    {
+            //                        Trace.TraceWarning($"NotifyURL: user_id 或 get_bagel 無效，userId={userId}, getBagel={getBagel}");
+            //                        WriteLog($"NotifyURL: user_id 或 get_bagel 無效，userId={userId}, getBagel={getBagel}");
+            //                        return Ok("1|OK");
+            //                    }
+            //                }
+            //                else
+            //                {
+            //                    Trace.TraceWarning($"NotifyURL: 找不到 deposit 資料, order_no={result.Result.MerchantOrderNo}");
+            //                    WriteLog($"NotifyURL: 找不到 deposit 資料, order_no={result.Result.MerchantOrderNo}");
+
+            //                }
+            //            }
+            //        }
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        Trace.TraceError($"NotifyURL 更新 Supabase 失敗: {ex.Message}\n{ex.StackTrace}");
+            //        WriteLog($"NotifyURL 更新 Supabase 失敗: {ex.Message}\n{ex.StackTrace}");
+            //        return Ok("1|OK");
+            //    }
+            //}
+
+            //return Ok("1|OK"); // 必須回傳表示接收成功，否則藍新會重複通知
+
+      
+
+
+        private void WriteLog(string text)
+        {
+            try
+            {
+                string path = @"C:\temp\notify_log.txt";
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+
+                using (var sw = new StreamWriter(path, true, Encoding.UTF8))
+                {
+                    sw.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {text}");
+                }
+            }
+            catch { /* 防止 log 寫檔失敗影響交易流程 */ }
         }
 
         #region Supabase API
