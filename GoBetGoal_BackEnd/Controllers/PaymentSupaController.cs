@@ -238,7 +238,7 @@ namespace GoBetGoal_BackEnd.Controllers
                     tradeInfo = HttpContext.Current.Request.Unvalidated.Form["TradeInfo"]
                      ?? HttpContext.Current.Request.Form["TradeInfo"]
                      ?? HttpContext.Current.Request.Params["TradeInfo"];
-                    WriteLog($"return_TradeInfo: POST:{tradeInfo}");
+                    //WriteLog($"return_TradeInfo: POST:{tradeInfo}");
 
                 }
                 else
@@ -246,7 +246,7 @@ namespace GoBetGoal_BackEnd.Controllers
                     // GET 取 query string
                     tradeInfo = HttpContext.Current.Request.QueryString["TradeInfo"];
                     PaymentStatus = HttpContext.Current.Request.QueryString["Status"];
-                    WriteLog($"return_TradeInfo: GET:{tradeInfo}");
+                    //WriteLog($"return_TradeInfo: GET:{tradeInfo}");
                 }
 
                 if (string.IsNullOrEmpty(tradeInfo))
@@ -270,7 +270,7 @@ namespace GoBetGoal_BackEnd.Controllers
                     else
                     {
                         decrypted = DecryptAES(tradeInfo);
-                        WriteLog($"ReturnURL:{decrypted}");
+                       // WriteLog($"ReturnURL:{decrypted}");
                     }
 
                 //}
@@ -283,7 +283,7 @@ namespace GoBetGoal_BackEnd.Controllers
                 {
                    
                     Trace.TraceError($"ReturnURL 解密失敗: {ex.Message}\n{ex.StackTrace}");
-                    WriteLog($"ReturnURL 解密失敗: {ex.Message}\n{ex.StackTrace}");
+                    //WriteLog($"ReturnURL 解密失敗: {ex.Message}\n{ex.StackTrace}");
                     return BadRequest("Invalid TradeInfo format");
                 }
 
@@ -302,12 +302,12 @@ namespace GoBetGoal_BackEnd.Controllers
                 }
                 catch (Exception ex)
                 {
-                    WriteLog($"ReturnURL 解析 JSON 失敗: {ex.Message}\n{ex.StackTrace}");
+                    //WriteLog($"ReturnURL 解析 JSON 失敗: {ex.Message}\n{ex.StackTrace}");
                     //return ReturnFailPage(orderNo, $"ReturnURL 解析 JSON 失敗: {ex.Message}\n{ex.StackTrace}", isError: true);
                     if (result == null || result.Result == null)
                     {
                         Trace.TraceWarning("ReturnURL: TradeInfo format invalid");
-                        WriteLog($"ReturnURL: TradeInfo format invalid:result == null || result.Result == null");
+                        //WriteLog($"ReturnURL: TradeInfo format invalid:result == null || result.Result == null");
                         return BadRequest("Invalid TradeInfo format");
                     }
                 }
@@ -427,7 +427,7 @@ namespace GoBetGoal_BackEnd.Controllers
                 string checkSha = GetSHA256($"HashKey={HashKey}&{tradeInfoRaw}&HashIV={HashIV}");
                 if (checkSha != tradeSha)
                 {
-                    WriteLog("TradeSha 驗證失敗，可能資料被竄改");
+                    //WriteLog("TradeSha 驗證失敗，可能資料被竄改");
                     System.Diagnostics.Debug.WriteLine("TradeSha 驗證失敗，可能資料被竄改");
                     return Ok("1|OK");
                 }
@@ -442,7 +442,7 @@ namespace GoBetGoal_BackEnd.Controllers
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"TradeInfo 解密失敗: {ex.Message}");
-                    WriteLog($"TradeInfo 解密失敗: {ex.Message}");
+                    //WriteLog($"TradeInfo 解密失敗: {ex.Message}");
                     //return Ok("1|OK");
                 }
 
@@ -475,7 +475,7 @@ namespace GoBetGoal_BackEnd.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"NotifyURL 例外錯誤: {ex}");
-                WriteLog($"NotifyURL 例外錯誤: {ex}");
+                //WriteLog($"NotifyURL 例外錯誤: {ex}");
                 return Ok("1|OK");
             }
 
@@ -492,7 +492,7 @@ namespace GoBetGoal_BackEnd.Controllers
             {
                 // 1. 取得 POST 的 raw form data
                 string rawForm = HttpContext.Current.Request.Form.ToString();
-                WriteLog($"NotifyURLDebug: raw form data: {rawForm}");
+                //WriteLog($"NotifyURLDebug: raw form data: {rawForm}");
                 Trace.TraceInformation($"NotifyURLDebug: raw form data: {rawForm}");
 
                 // 2. 解析 Query String
@@ -504,37 +504,37 @@ namespace GoBetGoal_BackEnd.Controllers
                 string tradeInfoHex = parsed["TradeInfo"]; // 加密內容
                 string tradeSha = parsed["TradeSha"];
 
-                WriteLog($"NotifyURLDebug: TradeInfo (Hex) length={tradeInfoHex?.Length}");
+                //WriteLog($"NotifyURLDebug: TradeInfo (Hex) length={tradeInfoHex?.Length}");
                 Trace.TraceInformation($"NotifyURLDebug: TradeInfo (Hex) length={tradeInfoHex?.Length}");
 
                 if (string.IsNullOrEmpty(tradeInfoHex))
                 {
-                    WriteLog("NotifyURLDebug: TradeInfo is empty");
+                    //WriteLog("NotifyURLDebug: TradeInfo is empty");
                     Trace.TraceWarning("NotifyURLDebug: TradeInfo is empty");
                     return Ok("1|OK");
                 }
 
                 // 3. 解密 TradeInfo Hex
                 string decryptedJson = DecryptAES(tradeInfoHex);
-                WriteLog($"NotifyURLDebug: Decrypted TradeInfo JSON: {decryptedJson}");
+                //WriteLog($"NotifyURLDebug: Decrypted TradeInfo JSON: {decryptedJson}");
                 Trace.TraceInformation($"NotifyURLDebug: Decrypted TradeInfo JSON: {decryptedJson}");
 
                 // 4. 解析 JSON
                 var tradeDetail = JsonConvert.DeserializeObject<TradeInfoResponseDetail>(decryptedJson);
                 if (tradeDetail == null)
                 {
-                    WriteLog("NotifyURLDebug: Failed to parse decrypted TradeInfo JSON");
+                    //WriteLog("NotifyURLDebug: Failed to parse decrypted TradeInfo JSON");
                     Trace.TraceWarning("NotifyURLDebug: Failed to parse decrypted TradeInfo JSON");
                 }
                 else
                 {
-                    WriteLog($"NotifyURLDebug: MerchantOrderNo={tradeDetail.MerchantOrderNo}, Amt={tradeDetail.Amt}, PaymentType={tradeDetail.PaymentType}");
+                    //WriteLog($"NotifyURLDebug: MerchantOrderNo={tradeDetail.MerchantOrderNo}, Amt={tradeDetail.Amt}, PaymentType={tradeDetail.PaymentType}");
                     Trace.TraceInformation($"NotifyURLDebug: MerchantOrderNo={tradeDetail.MerchantOrderNo}, Amt={tradeDetail.Amt}, PaymentType={tradeDetail.PaymentType}");
                 }
             }
             catch (Exception ex)
             {
-                WriteLog($"NotifyURLDebug Exception: {ex.Message}\n{ex.StackTrace}");
+                //WriteLog($"NotifyURLDebug Exception: {ex.Message}\n{ex.StackTrace}");
                 Trace.TraceError($"NotifyURLDebug Exception: {ex.Message}\n{ex.StackTrace}");
             }
 
@@ -557,7 +557,7 @@ namespace GoBetGoal_BackEnd.Controllers
                 Trace.TraceWarning(logMessage);
             }
 
-            WriteLog(logMessage);
+            //WriteLog(logMessage);
 
             string baseUrl = "https://gobetgoal.vercel.app";
             string path = "/shop";
@@ -850,7 +850,7 @@ namespace GoBetGoal_BackEnd.Controllers
         {
             try
             {
-                string path = @"C:\temp\notify_log.txt";
+                string path = @"C:\website\GoBetGoal\temp\notify_log.txt";
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
 
                 using (var sw = new StreamWriter(path, true, Encoding.UTF8))
@@ -909,7 +909,7 @@ namespace GoBetGoal_BackEnd.Controllers
                 {
                     var err = await response.Content.ReadAsStringAsync();
                     System.Diagnostics.Debug.WriteLine($"更新訂單狀態失敗: {err}");
-                    WriteLog($"更新訂單狀態失敗: {err}");
+                    //WriteLog($"更新訂單狀態失敗: {err}");
                 }
             }
         }
@@ -920,7 +920,8 @@ namespace GoBetGoal_BackEnd.Controllers
         private string EncryptAES(Dictionary<string, string> tradeData)
         {
             string query = string.Join("&", tradeData.Select(x => $"{x.Key}={x.Value}"));
-            WriteLog($"query:{query}");
+            //
+            //($"query:{query}");
 
             using (var aes = new AesCryptoServiceProvider())
             {
@@ -941,14 +942,14 @@ namespace GoBetGoal_BackEnd.Controllers
         {
             if (string.IsNullOrWhiteSpace(encryptedHex))
             {
-                WriteLog("TradeInfo 不能為空");
+                //WriteLog("TradeInfo 不能為空");
                 throw new ArgumentException("TradeInfo 不能為空");
             }
 
 
             if (encryptedHex.Length % 2 != 0)
             {
-                WriteLog("TradeInfo 長度不是偶數，Hex 格式錯誤");
+                //WriteLog("TradeInfo 長度不是偶數，Hex 格式錯誤");
                 throw new Exception("TradeInfo 長度不是偶數，Hex 格式錯誤");
             }
 
